@@ -18,14 +18,14 @@ const Modal: React.FC<ModalProps> = ({ isOpen, onClose, title, children }) => {
 
   return (
     <div 
-      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center backdrop-blur-sm"
+      className="fixed inset-0 bg-black bg-opacity-60 z-50 flex justify-center items-center backdrop-blur-sm modal-backdrop-fade-in"
       onClick={onClose}
       onKeyDown={handleKeydown}
       role="dialog"
       aria-modal="true"
     >
       <div 
-        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl transform transition-all flex flex-col max-h-[90vh]"
+        className="bg-white rounded-2xl shadow-xl w-full max-w-3xl transform transition-all flex flex-col max-h-[90vh] modal-content-scale-in"
         onClick={e => e.stopPropagation()}
       >
         <div className="flex justify-between items-center p-5 border-b sticky top-0 bg-white rounded-t-2xl z-10">

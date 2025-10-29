@@ -1,19 +1,22 @@
 import React, { useState } from 'react';
 import { navigation, settingsNavigation } from '../constants';
-import type { NavItem } from '../types';
+import type { NavItem, RegisteredPharmacy } from '../types';
 
 interface SidebarProps {
   currentPage: string;
   onNavigate: (pageId: string) => void;
+  currentUser: RegisteredPharmacy | null;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate, currentUser }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
 
   const handleNavClick = (e: React.MouseEvent<HTMLAnchorElement>, pageId: string) => {
     e.preventDefault();
     onNavigate(pageId);
   };
+
+  const filteredNavigation = navigation;
 
   return (
     <div className={`flex flex-col h-screen bg-white shadow-lg transition-all duration-300 z-30 ${isCollapsed ? 'w-20' : 'w-64'}`}>
@@ -30,19 +33,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
         </button>
       </div>
       <nav className="flex-1 px-2 py-4 space-y-1">
-        {navigation.map((item: NavItem) => (
+        {filteredNavigation.map((item: NavItem) => (
           <a
             key={item.name}
             href={item.href}
             onClick={(e) => handleNavClick(e, item.id)}
-            className={`flex items-center p-3 text-sm font-medium rounded-lg transition-colors duration-200 ${
+            className={`group flex items-center p-3 text-sm font-medium rounded-lg transition-all duration-200 ${
               currentPage === item.id
                 ? 'bg-[#11A66C] text-white shadow'
-                : 'text-gray-600 hover:bg-gray-100 hover:text-[#1C1C1C]'
+                : 'text-gray-600 hover:bg-gray-100 hover:text-[#1C1C1C] hover:-translate-y-px'
             } ${isCollapsed ? 'justify-center' : ''}`}
           >
-            <item.icon className="h-6 w-6" />
-            <span className={`ml-4 transition-all duration-200 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>{item.name}</span>
+            <item.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
+            <span className={`ml-4 transition-all duration-300 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>{item.name}</span>
           </a>
         ))}
       </nav>
@@ -52,9 +55,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, onNavigate }) => {
              key={item.name}
              href={item.href}
              onClick={(e) => handleNavClick(e, item.id)}
-             className={`flex items-center p-3 text-sm font-medium rounded-lg transition-colors duration-200 text-gray-600 hover:bg-gray-100 hover:text-[#1C1C1C] ${isCollapsed ? 'justify-center' : ''}`}
+             className={`group flex items-center p-3 text-sm font-medium rounded-lg transition-colors duration-200 text-gray-600 hover:bg-gray-100 hover:text-[#1C1C1C] ${isCollapsed ? 'justify-center' : ''}`}
            >
-             <item.icon className="h-6 w-6" />
+             <item.icon className="h-6 w-6 transition-transform duration-200 group-hover:scale-110" />
              <span className={`ml-4 transition-all duration-200 ${isCollapsed ? 'opacity-0 w-0' : 'opacity-100'}`}>{item.name}</span>
            </a>
         ))}

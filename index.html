@@ -4,6 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="google-site-verification" content="ToACqRnzQuflmtSy047XIzLumEHH8YV1_9A7qosHQ7g" />
+    <!-- Google tag (gtag.js) -->
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-Y61M0LSREX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
+
+      gtag('config', 'G-Y61M0LSREX');
+    </script>
     <title>Medimart Retail – Pharmacy Billing & ERP</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -14,22 +24,144 @@
         font-family: 'Inter', sans-serif;
         background-color: #F7FAF8;
       }
+      
+      /* --- INVOICE STYLES (APPLIES TO SCREEN & PRINT) --- */
+      #print-area {
+        font-family: 'Inter', sans-serif;
+        color: #374151; /* gray-700 */
+        line-height: 1.5;
+        font-size: 14px;
+      }
+      #print-area .invoice-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        margin-bottom: 2rem;
+        padding-bottom: 1rem;
+        border-bottom: 2px solid #11A66C;
+      }
+      #print-area .pharmacy-details { text-align: left; }
+      #print-area .pharmacy-details h1 { font-size: 1.75rem; font-weight: 700; color: #1f2937; /* gray-800 */ }
+      #print-area .pharmacy-details p { font-size: 0.875rem; color: #6b7280; /* gray-500 */ }
+      #print-area .bill-details { text-align: right; }
+      #print-area .bill-details h2 { font-size: 1.25rem; font-weight: 600; color: #1f2937; }
+      #print-area .bill-details p { font-size: 0.875rem; color: #6b7280; }
+      #print-area table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
+      #print-area table thead { background-color: #F0FDF4; /* green-50 */ color: #065f46; /* green-900 */ }
+      #print-area table th { padding: 0.75rem 1rem; text-align: left; font-weight: 600; }
+      #print-area table td { padding: 0.75rem 1rem; }
+      #print-area table tbody tr { border-bottom: 1px solid #e5e7eb; /* gray-200 */ }
+      #print-area table th:last-child, #print-area table td:last-child { text-align: right; }
+      #print-area .totals-section { float: right; width: 45%; max-width: 300px; margin-top: 1.5rem; }
+      #print-area .totals-section div { display: flex; justify-content: space-between; padding: 0.25rem 0; }
+      #print-area .invoice-footer { clear: both; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; text-align: center; font-size: 0.8rem; color: #6b7280; }
+
       @media print {
-        body * {
-          visibility: hidden;
-        }
-        #print-area, #print-area * {
-          visibility: visible;
-        }
-        #print-area {
-          position: absolute;
-          left: 0;
-          top: 0;
-          width: 100%;
-        }
+        /* Hide elements that should never be printed */
         .no-print {
           display: none !important;
         }
+        
+        /* By default, hide everything inside the body */
+        body > * {
+          display: none !important;
+        }
+        
+        /* Un-hide the React root container, as our modal is inside it */
+        body > #root {
+          display: block !important;
+        }
+        
+        /* Then, hide all direct children of the main app flex container... */
+        #root > div > * {
+          display: none !important;
+        }
+        
+        /* ...except for our print modal. Make it a block element for normal flow. */
+        #root > div > #print-bill-modal-container,
+        #root > div > #print-po-modal-container {
+          display: block !important;
+          position: static !important;
+        }
+        
+        /* Reset modal-specific styles so it looks like a document and not an overlay */
+        #print-bill-modal-container, 
+        #print-bill-modal-container > div,
+        #print-po-modal-container,
+        #print-po-modal-container > div {
+          width: 100% !important;
+          max-width: 100% !important;
+          height: auto !important;
+          max-height: none !important;
+          box-shadow: none !important;
+          border: none !important;
+          border-radius: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: white !important;
+          backdrop-filter: none !important;
+          overflow: visible !important;
+        }
+
+        /* Make sure the scrollable content within the modal is fully visible and prints */
+        #print-area {
+          overflow: visible !important;
+          padding: 0 !important; /* Reset padding for print */
+        }
+      }
+
+      /* --- Animation Keyframes --- */
+      @keyframes fadeIn {
+        from { opacity: 0; }
+        to { opacity: 1; }
+      }
+
+      @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(15px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      
+      @keyframes scaleIn {
+        from { transform: scale(0.95); opacity: 0; }
+        to { opacity: 1; transform: scale(1); opacity: 1; }
+      }
+      
+      /* --- Base Component Transitions --- */
+      button, a {
+        transition: all 0.2s ease-in-out;
+      }
+      
+      button:active, a:active {
+        transform: scale(0.97);
+        transition-duration: 0.1s;
+      }
+
+      /* --- Page Transition Animation --- */
+      .page-fade-in {
+        animation: fadeInUp 0.4s ease-out forwards;
+      }
+
+      /* --- Modal Animation --- */
+      .modal-backdrop-fade-in {
+        animation: fadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      .modal-content-scale-in {
+        animation: scaleIn 0.3s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+      }
+      
+      /* --- List Item Animation --- */
+      .list-item-enter {
+        animation: fadeInUp 0.3s ease-out forwards;
+      }
+
+      /* --- AI Highlight Animation --- */
+      @keyframes highlight-fade {
+        from { background-color: #fefce8; /* yellow-50 */ }
+        to { background-color: transparent; }
+      }
+
+      .item-highlight {
+        animation: highlight-fade 2.5s ease-out forwards;
       }
     </style>
   <script type="importmap">

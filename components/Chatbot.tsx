@@ -1,16 +1,26 @@
-
-import React, { useState, useRef, useEffect, useCallback } from 'react';
-// FIX: The LiveSession type is not exported from the @google/genai package.
-import { GoogleGenAI, Chat, LiveServerMessage, Modality, Blob as GenaiBlob } from '@google/genai';
-import type { ChatMessage } from '../types';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
+import { GoogleGenAI, LiveServerMessage, Modality, Blob as GenaiBlob, Content } from '@google/genai';
+import type { ChatMessage, InventoryItem, Transaction, Purchase, Distributor, Customer } from '../types';
 import { encode, decode, decodeAudioData } from '../utils/audio';
 
 const AiIcon = (props: React.SVGProps<SVGSVGElement>) => (
     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M12 2.69l.346.666L19.5 15.3l-6.846 4.01L6.5 15.3l7.154-11.944z"/><path d="M12 22v-6"/><path d="M12 8V2"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m4.93 19.07 4.24-4.24"/></svg>
 );
 
+interface AppData {
+    inventory: InventoryItem[];
+    transactions: Transaction[];
+    purchases: Purchase[];
+    distributors: Distributor[];
+    customers: Customer[];
+}
 
-const Chatbot: React.FC = () => {
+interface ChatbotProps {
+    appData: AppData;
+}
+
+
+const Chatbot: React.FC<ChatbotProps> = ({ appData }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [inputValue, setInputValue] = useState('');
@@ -18,8 +28,7 @@ const Chatbot: React.FC = () => {
     const [isListening, setIsListening] = useState(false);
     const [transcription, setTranscription] = useState<{input: string, output: string}>({input: '', output: ''});
 
-    const chatRef = useRef<Chat | null>(null);
-    // FIX: Use `any` for the session promise since `LiveSession` type is not available for import.
+    const ai = useMemo(() => new GoogleGenAI({ apiKey: process.env.API_KEY }), []);
     const sessionPromiseRef = useRef<Promise<any> | null>(null);
     const mediaStreamRef = useRef<MediaStream | null>(null);
     const audioContextRef = useRef<AudioContext | null>(null);
@@ -36,40 +45,68 @@ const Chatbot: React.FC = () => {
 
     useEffect(scrollToBottom, [messages, transcription]);
 
-    const initializeChat = () => {
-        if (!chatRef.current) {
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            chatRef.current = ai.chats.create({
-                model: 'gemini-2.5-flash',
-                config: {
-                    tools: [{ googleSearch: {} }],
-                },
-            });
-        }
-    };
+    useEffect(() => {
+        setMessages([
+            {
+                role: 'model',
+                parts: [{ text: "Hello! I'm MedTrade AI. I can now answer questions about your sales, inventory, customers, and distributors. How can I help you today?" }]
+            }
+        ]);
+    }, []);
     
     const handleSendMessage = async () => {
         if (!inputValue.trim() || isLoading) return;
         
-        initializeChat();
         const text = inputValue;
         setInputValue('');
-        setMessages(prev => [...prev, { role: 'user', parts: [{ text }] }]);
+        const userMessage: ChatMessage = { role: 'user', parts: [{ text }] };
+        const updatedMessages = [...messages, userMessage];
+        setMessages(updatedMessages);
         setIsLoading(true);
 
+        const systemInstruction = `You are MedTrade AI, an expert assistant for the Medimart Pharmacy ERP system. You will be provided with the pharmacy's current data in JSON format. Your primary task is to answer user questions based ONLY on this provided data.
+
+        - When asked about sales or revenue, refer to the 'transactions' array.
+        - When asked about purchases, refer to the 'purchases' array.
+        - When asked about inventory, stock levels, or medicine details (like composition, brand, etc.), refer to the 'inventory' array.
+        - When asked about customer dues or receivables, find the relevant customer in the 'customers' array and check the 'balance' of the last entry in their 'ledger'. A positive balance means the customer owes money.
+        - When asked about distributor dues or payables, find the relevant distributor in the 'distributors' array and check the 'balance' of the last entry in their 'ledger'. A positive balance means you owe the distributor money.
+        - Perform calculations if necessary (e.g., total sales, summing up balances).
+        - If the data required to answer a question is not available in the provided JSON, state that clearly. For example, if a medicine's composition is an empty string, say that the composition is not recorded.
+        - Be helpful, concise, and accurate in your responses. Format financial data clearly. Do not answer questions unrelated to the pharmacy data.`;
+        
+        const dataContext = `This is the pharmacy's data in JSON format:\n${JSON.stringify(appData)}`;
+
+        const primeUser: Content = { role: 'user', parts: [{ text: dataContext }] };
+        const primeModel: Content = { role: 'model', parts: [{ text: 'Understood. I have analyzed the provided pharmacy data and am ready to answer your questions.' }] };
+        
+        const history: Content[] = updatedMessages.map(msg => ({
+            role: msg.role,
+            parts: msg.parts.map(p => ({ text: p.text })),
+        }));
+        
+        // Keep the history to a reasonable size to avoid token limits
+        const recentHistory = history.slice(-10); 
+        
+        const contents: Content[] = [primeUser, primeModel, ...recentHistory];
+
         try {
-            const stream = await chatRef.current!.sendMessageStream({ message: text });
+            const stream = await ai.models.generateContentStream({
+                model: 'gemini-2.5-flash',
+                contents,
+                config: {
+                    systemInstruction,
+                },
+            });
+
             let currentResponse: ChatMessage = { role: 'model', parts: [{ text: '' }] };
             setMessages(prev => [...prev, currentResponse]);
 
+            let fullText = '';
             for await (const chunk of stream) {
-                const newText = chunk.text;
-                const groundingMetadata = chunk.candidates?.[0]?.groundingMetadata;
-                const sources = groundingMetadata?.groundingChunks
-                  ?.map(c => c.web)
-                  .filter(web => web?.uri && web?.title) as { uri: string; title: string }[] | undefined;
+                fullText += chunk.text;
+                currentResponse = { ...currentResponse, parts: [{ text: fullText }] };
                 
-                currentResponse = { role: 'model', parts: [{ text: newText, sources }]};
                 setMessages(prev => {
                     const newMessages = [...prev];
                     newMessages[newMessages.length - 1] = currentResponse;
@@ -215,7 +252,7 @@ const Chatbot: React.FC = () => {
             <button
                 onClick={() => setIsOpen(true)}
                 className="fixed bottom-6 right-6 bg-[#11A66C] text-white p-4 rounded-full shadow-lg hover:bg-[#35C48D] transition-transform duration-200 transform hover:scale-110 flex items-center justify-center"
-                aria-label="Open AI Assistant"
+                aria-label="Open MedTrade AI"
             >
                 <AiIcon className="w-8 h-8"/>
             </button>
@@ -227,7 +264,7 @@ const Chatbot: React.FC = () => {
             <header className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-2xl">
                 <div className="flex items-center">
                     <AiIcon className="w-6 h-6 text-[#11A66C] mr-2"/>
-                    <h2 className="text-lg font-semibold text-gray-800">AI Assistant</h2>
+                    <h2 className="text-lg font-semibold text-gray-800">MedTrade AI</h2>
                 </div>
                 <button onClick={() => setIsOpen(false)} className="p-1 text-gray-400 rounded-full hover:bg-gray-200" aria-label="Close chat">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>

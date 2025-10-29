@@ -1,34 +1,31 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import type { InventoryItem } from '../types';
 
-interface AddProductModalProps {
+interface EditProductModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAddProduct: (newProduct: Omit<InventoryItem, 'id'>) => void;
+    onSave: (updatedProduct: InventoryItem) => void;
+    productToEdit: InventoryItem | null;
 }
 
 const productCategories = ["Pain Relief", "Vitamins", "First Aid", "Cold & Cough", "Personal Care", "Baby Care", "Other"];
 
-const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAddProduct }) => {
-    const initialState: Omit<InventoryItem, 'id'> = {
-        name: '',
-        brand: '',
-        category: '',
-        stock: 0,
-        minStockLimit: 10,
-        batch: '',
-        expiry: '',
-        purchasePrice: 0,
-        mrp: 0,
-        gstPercent: 0,
-        hsnCode: '',
-        composition: '',
-    };
-    const [product, setProduct] = useState(initialState);
-    const [errors, setErrors] = useState<Partial<Record<keyof typeof product, string>>>({});
+const EditProductModal: React.FC<EditProductModalProps> = ({ isOpen, onClose, onSave, productToEdit }) => {
+    const [product, setProduct] = useState<InventoryItem | null>(null);
+    const [errors, setErrors] = useState<Partial<Record<keyof InventoryItem, string>>>({});
+    
+    useEffect(() => {
+        if (productToEdit) {
+            setProduct(productToEdit);
+        } else {
+            setProduct(null);
+        }
+        setErrors({}); // Reset errors when modal opens/changes product
+    }, [productToEdit, isOpen]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+        if (!product) return;
         const { name, value, type } = e.target;
         
         let processedValue: string | number = value;
@@ -36,10 +33,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
             processedValue = parseFloat(value) || 0;
         }
 
-        setProduct(prev => ({
+        setProduct(prev => prev ? ({
             ...prev,
             [name]: processedValue,
-        }));
+        }) : null);
 
         if (errors[name as keyof typeof errors]) {
             setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -47,7 +44,8 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
     };
     
     const validate = () => {
-        const newErrors: Partial<Record<keyof typeof product, string>> = {};
+        if (!product) return false;
+        const newErrors: Partial<Record<keyof InventoryItem, string>> = {};
         if (!product.name.trim()) newErrors.name = "Product name is required.";
         if (!product.category) newErrors.category = "Category is required.";
         if (product.stock < 0) newErrors.stock = "Stock cannot be negative.";
@@ -63,15 +61,15 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
     }
 
     const handleSubmit = () => {
-        if (validate()) {
-            onAddProduct(product);
-            setProduct(initialState);
-            onClose();
+        if (product && validate()) {
+            onSave(product);
         }
     };
 
+    if (!isOpen || !product) return null;
+
     return (
-        <Modal isOpen={isOpen} onClose={onClose} title="Add New Inventory Product">
+        <Modal isOpen={isOpen} onClose={onClose} title={`Edit ${product.name}`}>
             <div className="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-4 overflow-y-auto">
                 <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700">Product Name *</label>
@@ -90,7 +88,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
                     <label htmlFor="brand" className="block text-sm font-medium text-gray-700">Brand</label>
                     <input type="text" name="brand" id="brand" value={product.brand} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
                 </div>
-                 <div className="lg:col-span-3">
+                <div className="lg:col-span-3">
                     <label htmlFor="composition" className="block text-sm font-medium text-gray-700">Composition</label>
                     <textarea name="composition" id="composition" value={product.composition || ''} onChange={handleChange} rows={2} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
                 </div>
@@ -138,11 +136,11 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
                     Cancel
                 </button>
                 <button onClick={handleSubmit} className="ml-3 px-5 py-2.5 text-sm font-semibold text-white bg-[#35C48D] rounded-lg shadow-sm hover:bg-[#11A66C] transition-colors">
-                    Save Product
+                    Save Changes
                 </button>
             </div>
         </Modal>
     );
 };
 
-export default AddProductModal;
+export default EditProductModal;
