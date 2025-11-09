@@ -109,7 +109,7 @@ const AddSubCategoryModal: React.FC<AddSubCategoryModalProps> = ({ isOpen, onClo
               <div>
                 <label htmlFor="parent-category" className="block text-sm font-medium text-gray-700">Parent Category *</label>
                 <select id="parent-category" value={categoryId} onChange={e => setCategoryId(e.target.value)} className="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm bg-white focus:ring-[#11A66C] focus:border-[#11A66C]">
-                  <option value="">-- Select Parent --</option>
+                  <option value="">— Select Parent —</option>
                   {categories.map(cat => <option key={cat.id} value={cat.id}>{cat.name}</option>)}
                 </select>
                 {errors.categoryId && <p className="text-xs text-red-500 mt-1">{errors.categoryId}</p>}

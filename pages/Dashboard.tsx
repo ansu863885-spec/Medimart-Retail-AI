@@ -3,16 +3,15 @@ import Card from '../components/Card';
 import { salesChartData } from '../constants';
 import type { KpiData, SalesData, InventoryItem, RegisteredPharmacy, Transaction } from '../types';
 import { getAiInsights, generateTextToSpeech } from '../services/geminiService';
-// FIX: Added 'Cell' to recharts import to correctly render pie chart segments.
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie, Treemap, Cell } from 'recharts';
 import { decode, decodeAudioData } from '../utils/audio';
 
 // Sub-component for KPI cards
 const KpiCard: React.FC<{ item: KpiData; onClick: (id: string) => void; }> = ({ item, onClick }) => (
-  <Card onClick={() => onClick(item.id)} className="p-5 flex items-start justify-between h-full cursor-pointer transition-all duration-300 hover:shadow-xl hover:-translate-y-1">
+  <Card onClick={() => onClick(item.id)} className="p-5 flex items-start justify-between h-full cursor-pointer">
     <div>
-      <p className="text-sm font-medium text-gray-500">{item.title}</p>
-      <p className="text-3xl font-semibold text-[#1C1C1C] mt-1">{item.value}</p>
+      <p className="text-sm font-medium text-app-text-secondary">{item.title}</p>
+      <p className="text-3xl font-semibold text-app-text-primary mt-1">{item.value}</p>
       <div className={`mt-2 flex items-center text-xs font-medium ${item.changeType === 'increase' ? 'text-green-600' : 'text-red-600'}`}>
         {item.change}
       </div>
@@ -158,11 +157,11 @@ const AiInsights: React.FC<{ inventory: InventoryItem[], transactions: Transacti
                     <div className="p-2 bg-yellow-100 rounded-full mr-3">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5 text-yellow-600"><path d="M12 2.69l.346.666L19.5 15.3l-6.846 4.01L6.5 15.3l7.154-11.944z"/><path d="M12 22v-6"/><path d="M12 8V2"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m4.93 19.07 4.24-4.24"/></svg>
                     </div>
-                    <h3 className="text-lg font-semibold text-[#1C1C1C]">AI Insights</h3>
+                    <h3 className="text-lg font-semibold text-app-text-primary">AI Insights</h3>
                  </div>
-                 <button onClick={handleToggleSpeech} disabled={loading || isGeneratingSpeech} className="p-2 rounded-full text-gray-500 hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSpeaking ? "Stop reading insights" : "Read insights aloud"}>
+                 <button onClick={handleToggleSpeech} disabled={loading || isGeneratingSpeech} className="p-2 rounded-full text-app-text-secondary hover:bg-hover disabled:opacity-50 disabled:cursor-not-allowed" aria-label={isSpeaking ? "Stop reading insights" : "Read insights aloud"}>
                     {isGeneratingSpeech ? (
-                        <svg className="animate-spin h-5 w-5 text-[#11A66C]" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                        <svg className="animate-spin h-5 w-5 text-primary" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     ) : isSpeaking ? (
                          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><rect x="6" y="6" width="12" height="12"></rect></svg>
                     ) : (
@@ -172,15 +171,15 @@ const AiInsights: React.FC<{ inventory: InventoryItem[], transactions: Transacti
             </div>
             {loading ? (
                 <div className="space-y-3 animate-pulse">
-                    <div className="h-4 bg-gray-200 rounded-md w-full"></div>
-                    <div className="h-4 bg-gray-200 rounded-md w-5/6"></div>
-                    <div className="h-4 bg-gray-200 rounded-md w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-full"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-5/6"></div>
+                    <div className="h-4 bg-gray-200 dark:bg-gray-700 rounded-md w-full"></div>
                 </div>
             ) : (
-                <ul className="space-y-3 text-sm text-gray-700">
+                <ul className="space-y-3 text-sm text-app-text-secondary">
                     {insights.map((insight, index) => (
                         <li key={index} className="flex items-start">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2 mt-1 text-[#11A66C] flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-4 h-4 mr-2 mt-1 text-primary flex-shrink-0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
                             <span>{insight}</span>
                         </li>
                     ))}
@@ -280,11 +279,33 @@ const Dashboard: React.FC<{ kpiData: KpiData[]; onKpiClick: (id: string) => void
 
     return { hourlySales, categorySalesData, productSalesData };
   }, [transactions]);
+
+  const [primaryColor, setPrimaryColor] = useState('var(--color-primary)');
+  const [textColor, setTextColor] = useState('var(--color-text-secondary)');
+
+  useEffect(() => {
+    const rootStyle = getComputedStyle(document.documentElement);
+    // Function to read CSS variables
+    const updateColors = () => {
+        const pColor = rootStyle.getPropertyValue('--color-primary').trim();
+        const tColor = rootStyle.getPropertyValue('--color-text-secondary').trim();
+        if (pColor) setPrimaryColor(pColor);
+        if (tColor) setTextColor(tColor);
+    };
+
+    updateColors(); // Initial set
+
+    // Observe changes to theme/mode attributes on the root element
+    const observer = new MutationObserver(updateColors);
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'class'] });
+
+    return () => observer.disconnect(); // Cleanup observer on component unmount
+  }, []);
   
   return (
-    <main className="flex-1 p-6 bg-[#F7FAF8] overflow-y-auto page-fade-in">
-      <h1 className="text-2xl font-bold text-[#1C1C1C]">Welcome back, {currentUser?.pharmacyName || 'User'}!</h1>
-      <p className="text-gray-500 mt-1">{dailyQuote}</p>
+    <main className="p-6 page-fade-in">
+      <h1 className="text-2xl font-bold text-app-text-primary">Welcome back, {currentUser?.pharmacyName || 'User'}!</h1>
+      <p className="text-app-text-secondary mt-1">{dailyQuote}</p>
 
       {/* KPI Strip */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mt-6">
@@ -298,26 +319,26 @@ const Dashboard: React.FC<{ kpiData: KpiData[]; onKpiClick: (id: string) => void
       {/* Main Content Area */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
         <Card className="p-6">
-          <h3 className="text-lg font-semibold text-[#1C1C1C]">Today vs. Yesterday Sales (Hourly)</h3>
+          <h3 className="text-lg font-semibold text-app-text-primary">Today vs. Yesterday Sales (Hourly)</h3>
           <div className="h-80 mt-4">
             {salesVisualsData.hourlySales.some(d => d.Today > 0 || d.Yesterday > 0) ? (
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={salesVisualsData.hourlySales} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
-                    <XAxis dataKey="name" tick={{ fill: '#6b7280', fontSize: 12 }} />
-                    <YAxis tick={{ fill: '#6b7280', fontSize: 12 }} tickFormatter={(value) => `₹${Number(value)/1000}k`} />
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+                    <XAxis dataKey="name" tick={{ fill: textColor, fontSize: 12 }} />
+                    <YAxis tick={{ fill: textColor, fontSize: 12 }} tickFormatter={(value) => `₹${Number(value)/1000}k`} />
                     <Tooltip 
                       cursor={{fill: 'rgba(17, 166, 108, 0.1)'}}
-                      contentStyle={{ backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '0.75rem' }}
+                      contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)', borderRadius: '0.75rem' }}
                       formatter={(value) => [`₹${value}`, null]}
                      />
                     <Legend iconType="circle" iconSize={8} />
                     <Bar dataKey="Yesterday" fill="#a7f3d0" radius={[4, 4, 0, 0]} />
-                    <Bar dataKey="Today" fill="#11A66C" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="Today" fill={primaryColor} radius={[4, 4, 0, 0]} />
                   </BarChart>
                 </ResponsiveContainer>
              ) : (
-                <div className="flex items-center justify-center h-full text-gray-500">
+                <div className="flex items-center justify-center h-full text-app-text-secondary">
                     <p>No sales data for today or yesterday.</p>
                 </div>
             )}
@@ -331,27 +352,26 @@ const Dashboard: React.FC<{ kpiData: KpiData[]; onKpiClick: (id: string) => void
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
           <Card className="p-6">
-              <h3 className="text-lg font-semibold text-[#1C1C1C]">Today's Sales by Category</h3>
+              <h3 className="text-lg font-semibold text-app-text-primary">Today's Sales by Category</h3>
               <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
-                          <Pie data={salesVisualsData.categorySalesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} >
+                          <Pie data={salesVisualsData.categorySalesData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`} fill={textColor}>
                             {salesVisualsData.categorySalesData.map((entry, index) => (
-                                // FIX: Replaced non-existent '_any' component with 'Cell' from recharts for rendering pie chart cells.
                                 <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                             ))}
                           </Pie>
-                          <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`} />
+                          <Tooltip formatter={(value: number) => `₹${value.toFixed(2)}`}  contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}/>
                       </PieChart>
                   </ResponsiveContainer>
               </div>
           </Card>
            <Card className="p-6">
-              <h3 className="text-lg font-semibold text-[#1C1C1C]">Today's Sales by Product</h3>
+              <h3 className="text-lg font-semibold text-app-text-primary">Today's Sales by Product</h3>
                <div className="h-80">
                   <ResponsiveContainer width="100%" height="100%">
-                      <Treemap data={salesVisualsData.productSalesData} dataKey="size" ratio={4/3} stroke="#fff" fill="#35C48D" content={<CustomizedContent colors={COLORS} />} >
-                        <Tooltip formatter={(value: number, name: string) => [`₹${value.toFixed(2)}`, name]} />
+                      <Treemap data={salesVisualsData.productSalesData} dataKey="size" ratio={4/3} stroke="var(--color-bg-card)" fill="#35C48D" content={<CustomizedContent colors={COLORS} />} >
+                        <Tooltip formatter={(value: number, name: string) => [`₹${value.toFixed(2)}`, name]}  contentStyle={{ backgroundColor: 'var(--color-bg-card)', border: '1px solid var(--color-border)' }}/>
                       </Treemap>
                   </ResponsiveContainer>
               </div>

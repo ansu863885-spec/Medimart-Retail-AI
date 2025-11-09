@@ -55,6 +55,7 @@ const StandardTemplate: React.FC<TemplateProps> = ({ bill }) => {
       <div className="bill-meta flex justify-between text-sm border-b pb-2 mb-2">
         <div>
           <p><strong>Billed to:</strong> {bill.customerName}</p>
+          {bill.referredBy && <p><strong>Referred by (RMP):</strong> {bill.referredBy}</p>}
         </div>
       </div>
 
@@ -78,21 +79,21 @@ const StandardTemplate: React.FC<TemplateProps> = ({ bill }) => {
                         {item.hsnCode && <span className="block text-xs text-gray-500">HSN: {item.hsnCode}</span>}
                     </td>
                     <td className="text-center py-2">{item.quantity}</td>
-                    <td className="text-right py-2">₹{item.mrp.toFixed(2)}</td>
+                    <td className="text-right py-2">₹{(item.mrp || 0).toFixed(2)}</td>
                     <td className="text-right py-2">{item.discountPercent || 0}%</td>
-                    <td className="text-right py-2">₹{item.taxableValue.toFixed(2)}</td>
-                    <td className="text-right py-2">₹{item.gstAmount.toFixed(2)}</td>
-                    <td className="text-right py-2 font-medium">₹{item.priceAfterDiscount.toFixed(2)}</td>
+                    <td className="text-right py-2">₹{(item.taxableValue || 0).toFixed(2)}</td>
+                    <td className="text-right py-2">₹{(item.gstAmount || 0).toFixed(2)}</td>
+                    <td className="text-right py-2 font-medium">₹{(item.priceAfterDiscount || 0).toFixed(2)}</td>
                 </tr>
             ))}
         </tbody>
       </table>
       <div className="flex justify-end mt-4">
         <div className="totals-section w-64 text-sm">
-          <div className="flex justify-between"><span>Taxable Value:</span><span>₹{billDetails.subtotal.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>Discount:</span><span>- ₹{billDetails.totalDiscount.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span>Total GST:</span><span>+ ₹{billDetails.totalGst.toFixed(2)}</span></div>
-          <div className="flex justify-between font-bold text-base border-t mt-1 pt-1"><span>Grand Total:</span><span>₹{bill.total.toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>Taxable Value:</span><span>₹{(billDetails.subtotal || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>Discount:</span><span>- ₹{(billDetails.totalDiscount || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span>Total GST:</span><span>+ ₹{(billDetails.totalGst || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between font-bold text-base border-t mt-1 pt-1"><span>Grand Total:</span><span>₹{(bill.total || 0).toFixed(2)}</span></div>
         </div>
       </div>
       <footer className="invoice-footer mt-12 text-sm text-center">

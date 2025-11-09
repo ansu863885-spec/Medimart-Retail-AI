@@ -8,7 +8,7 @@ interface TemplateProps {
 const ModernTemplate: React.FC<TemplateProps> = ({ bill }) => {
   // This is a placeholder as customer balance isn't stored with the transaction yet
   const previousBalance = 0; // In a real app, this would be fetched
-  const newBalance = (previousBalance + bill.total) - bill.amountReceived;
+  const newBalance = (previousBalance + (bill.total || 0)) - (bill.amountReceived || 0);
 
   return (
     <div className="bg-white text-gray-700 text-base">
@@ -33,12 +33,13 @@ const ModernTemplate: React.FC<TemplateProps> = ({ bill }) => {
       <div className="text-sm mb-6">
         <p className="font-semibold">Bill To:</p>
         <p>{bill.customerName}</p>
+        {bill.referredBy && <p><span className="font-semibold">Referred by (RMP):</span> {bill.referredBy}</p>}
       </div>
 
       {/* Items Section */}
       <div className="space-y-4">
         {bill.items.map(item => {
-            const totalMrp = item.mrp * item.quantity;
+            const totalMrp = (item.mrp || 0) * (item.quantity || 0);
             const discountAmount = totalMrp * ((item.discountPercent || 0) / 100);
             const finalAmount = totalMrp - discountAmount;
 
@@ -48,11 +49,11 @@ const ModernTemplate: React.FC<TemplateProps> = ({ bill }) => {
                     <div className="grid grid-cols-4 gap-2 mt-2 text-sm">
                         <div>
                             <p className="text-xs text-gray-500">Quantity</p>
-                            <p>{item.quantity} {item.packSize || ''}</p>
+                            <p>{item.quantity} {item.packType || ''}</p>
                         </div>
                         <div>
                             <p className="text-xs text-gray-500">Price/Unit</p>
-                            <p>₹{item.mrp.toFixed(2)}</p>
+                            <p>₹{(item.mrp || 0).toFixed(2)}</p>
                         </div>
                          <div>
                             <p className="text-xs text-gray-500">GST</p>
@@ -60,11 +61,11 @@ const ModernTemplate: React.FC<TemplateProps> = ({ bill }) => {
                         </div>
                         <div>
                             <p className="text-xs text-gray-500">Discount</p>
-                            <p>{item.discountPercent?.toFixed(2) || 0}%</p>
+                            <p>{(item.discountPercent || 0).toFixed(2)}%</p>
                         </div>
                         <div className="col-start-4 text-right">
                             <p className="text-xs text-gray-500">Amount</p>
-                            <p className="font-semibold">₹{finalAmount.toFixed(2)}</p>
+                            <p className="font-semibold">₹{(finalAmount || 0).toFixed(2)}</p>
                         </div>
                     </div>
                 </div>
@@ -77,10 +78,10 @@ const ModernTemplate: React.FC<TemplateProps> = ({ bill }) => {
         <div className="p-4 bg-gray-50 rounded-lg">
             <h3 className="font-semibold mb-2">Pricing / Breakup</h3>
             <div className="space-y-1 text-sm">
-                <div className="flex justify-between"><span>Sub Total</span><span>₹{bill.total.toFixed(2)}</span></div>
-                <div className="flex justify-between font-bold text-base"><span>Total Amount</span><span>₹{bill.total.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Received Amount</span><span>₹{bill.amountReceived.toFixed(2)}</span></div>
-                <div className="flex justify-between"><span>Transaction Balance</span><span>₹{newBalance.toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Sub Total</span><span>₹{(bill.total || 0).toFixed(2)}</span></div>
+                <div className="flex justify-between font-bold text-base"><span>Total Amount</span><span>₹{(bill.total || 0).toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Received Amount</span><span>₹{(bill.amountReceived || 0).toFixed(2)}</span></div>
+                <div className="flex justify-between"><span>Transaction Balance</span><span>₹{(newBalance || 0).toFixed(2)}</span></div>
             </div>
         </div>
         <div className="mt-4 text-xs">

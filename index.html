@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="default">
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
@@ -19,10 +19,82 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.5/dist/JsBarcode.all.min.js"></script>
+    <script src="https://unpkg.com/html5-qrcode" type="text/javascript"></script>
     <style>
+      /* --- THEME COLORS --- */
+      html[data-theme='default'] {
+        --color-primary: #11A66C;
+        --color-primary-dark: #0f5132;
+        --color-primary-light: #35C48D;
+        --color-primary-extralight: #F0FDF4;
+        --color-primary-text: #ffffff;
+        --color-theme-900: #065f46;
+      }
+      html[data-theme='ocean'] {
+        --color-primary: #3B82F6;
+        --color-primary-dark: #2563EB;
+        --color-primary-light: #60A5FA;
+        --color-primary-extralight: #EFF6FF;
+        --color-primary-text: #ffffff;
+        --color-theme-900: #1E40AF;
+      }
+      html[data-theme='sunrise'] {
+        --color-primary: #F97316;
+        --color-primary-dark: #EA580C;
+        --color-primary-light: #FB923C;
+        --color-primary-extralight: #FFF7ED;
+        --color-primary-text: #ffffff;
+        --color-theme-900: #9A3412;
+      }
+      html[data-theme='royal'] {
+        --color-primary: #6366F1;
+        --color-primary-dark: #4F46E5;
+        --color-primary-light: #818CF8;
+        --color-primary-extralight: #EEF2FF;
+        --color-primary-text: #ffffff;
+        --color-theme-900: #3730A3;
+      }
+
+      /* --- SEMANTIC COLORS (LIGHT & DARK MODE) --- */
+      /* Light Mode (default) */
+      :root, html {
+        --color-bg-app: #F7FAF8;
+        --color-bg-card: #ffffff;
+        --color-bg-sidebar: #ffffff;
+        --color-bg-hover: #f3f4f6; /* gray-100 */
+        --color-bg-input: #ffffff;
+
+        --color-text-primary: #111827; /* gray-900 */
+        --color-text-secondary: #4b5563; /* gray-600 */
+        --color-text-tertiary: #6b7280; /* gray-500 */
+        --color-text-inverted: #ffffff;
+
+        --color-border: #e5e7eb; /* gray-200 */
+      }
+
+      /* Dark Mode */
+      html.dark {
+        --color-bg-app: #111827; /* gray-900 */
+        --color-bg-card: #1f2937; /* gray-800 */
+        --color-bg-sidebar: #1f2937; /* gray-800 */
+        --color-bg-hover: #374151; /* gray-700 */
+        --color-bg-input: #374151; /* gray-700 */
+
+        --color-text-primary: #f9fafb; /* gray-50 */
+        --color-text-secondary: #d1d5db; /* gray-300 */
+        --color-text-tertiary: #9ca3af; /* gray-400 */
+        --color-text-inverted: #111827;
+
+        --color-border: #374151; /* gray-700 */
+      }
+
+      /* Base styles */
       body {
         font-family: 'Inter', sans-serif;
-        background-color: #F7FAF8;
+        background-color: var(--color-bg-app);
+        color: var(--color-text-primary);
+        transition: background-color 0.3s ease-in-out;
       }
       
       /* --- INVOICE STYLES (APPLIES TO SCREEN & PRINT) --- */
@@ -38,7 +110,7 @@
         align-items: flex-start;
         margin-bottom: 2rem;
         padding-bottom: 1rem;
-        border-bottom: 2px solid #11A66C;
+        border-bottom: 2px solid var(--color-primary);
       }
       #print-area .pharmacy-details { text-align: left; }
       #print-area .pharmacy-details h1 { font-size: 1.75rem; font-weight: 700; color: #1f2937; /* gray-800 */ }
@@ -47,7 +119,7 @@
       #print-area .bill-details h2 { font-size: 1.25rem; font-weight: 600; color: #1f2937; }
       #print-area .bill-details p { font-size: 0.875rem; color: #6b7280; }
       #print-area table { width: 100%; border-collapse: collapse; margin-top: 1.5rem; }
-      #print-area table thead { background-color: #F0FDF4; /* green-50 */ color: #065f46; /* green-900 */ }
+      #print-area table thead { background-color: var(--color-primary-extralight); color: var(--color-theme-900); }
       #print-area table th { padding: 0.75rem 1rem; text-align: left; font-weight: 600; }
       #print-area table td { padding: 0.75rem 1rem; }
       #print-area table tbody tr { border-bottom: 1px solid #e5e7eb; /* gray-200 */ }
@@ -56,6 +128,44 @@
       #print-area .totals-section div { display: flex; justify-content: space-between; padding: 0.25rem 0; }
       #print-area .invoice-footer { clear: both; margin-top: 3rem; padding-top: 1rem; border-top: 1px solid #e5e7eb; text-align: center; font-size: 0.8rem; color: #6b7280; }
 
+      /* Barcode Print Styles */
+      #print-barcode-area {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.25rem;
+        justify-content: center;
+      }
+      .barcode-label {
+        border: 1px solid #ccc;
+        padding: 0.25rem;
+        text-align: center;
+        width: 3in; 
+        height: 1in; 
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        page-break-inside: avoid;
+        box-sizing: border-box;
+      }
+      .barcode-label .product-name {
+        font-size: 10px;
+        font-weight: bold;
+        margin-bottom: 2px;
+        max-width: 100%;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .barcode-label .pharmacy-name {
+        font-size: 8px;
+        margin-bottom: 2px;
+      }
+      .barcode-label .mrp {
+        font-size: 12px;
+        font-weight: bold;
+      }
+      
       @media print {
         /* Hide elements that should never be printed */
         .no-print {
@@ -79,7 +189,9 @@
         
         /* ...except for our print modal. Make it a block element for normal flow. */
         #root > div > #print-bill-modal-container,
-        #root > div > #print-po-modal-container {
+        #root > div > #print-po-modal-container,
+        #root > div > #print-report-modal-container,
+        #root > div > #print-barcode-modal-container {
           display: block !important;
           position: static !important;
         }
@@ -88,7 +200,11 @@
         #print-bill-modal-container, 
         #print-bill-modal-container > div,
         #print-po-modal-container,
-        #print-po-modal-container > div {
+        #print-po-modal-container > div,
+        #print-report-modal-container,
+        #print-report-modal-container > div,
+        #print-barcode-modal-container,
+        #print-barcode-modal-container > div {
           width: 100% !important;
           max-width: 100% !important;
           height: auto !important;
@@ -104,7 +220,7 @@
         }
 
         /* Make sure the scrollable content within the modal is fully visible and prints */
-        #print-area {
+        #print-area, #print-barcode-area {
           overflow: visible !important;
           padding: 0 !important; /* Reset padding for print */
         }
@@ -163,7 +279,94 @@
       .item-highlight {
         animation: highlight-fade 2.5s ease-out forwards;
       }
+      
+      /* --- Notification System --- */
+      .notification-container {
+        position: fixed;
+        bottom: 1.5rem;
+        right: 1.5rem;
+        z-index: 100;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+
+      @keyframes slideInUp {
+        from {
+          opacity: 0;
+          transform: translateY(100%);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .notification-item {
+        width: 350px;
+        max-width: 90vw;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        animation: slideInUp 0.3s ease-out forwards;
+        color: white;
+      }
+
+      .notification-item.success {
+        background-color: #10B981; /* green-500 */
+      }
+
+      .notification-item.error {
+        background-color: #EF4444; /* red-500 */
+      }
+      
+      .notification-item button {
+        background: none;
+        border: none;
+        color: white;
+        opacity: 0.7;
+        cursor: pointer;
+        font-size: 1.5rem;
+        line-height: 1;
+        padding: 0 0 0 0.5rem;
+      }
+      .notification-item button:hover {
+        opacity: 1;
+      }
     </style>
+  <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            colors: {
+              // Primary colors for theming
+              primary: 'var(--color-primary)',
+              'primary-dark': 'var(--color-primary-dark)',
+              'primary-light': 'var(--color-primary-light)',
+              'primary-extralight': 'var(--color-primary-extralight)',
+              'primary-text': 'var(--color-primary-text)',
+
+              // Semantic colors for dark mode
+              'app-bg': 'var(--color-bg-app)',
+              'card-bg': 'var(--color-bg-card)',
+              'sidebar-bg': 'var(--color-bg-sidebar)',
+              'hover': 'var(--color-bg-hover)',
+              'input-bg': 'var(--color-bg-input)',
+              
+              'app-text-primary': 'var(--color-text-primary)',
+              'app-text-secondary': 'var(--color-text-secondary)',
+              'app-text-tertiary': 'var(--color-text-tertiary)',
+              'app-text-inverted': 'var(--color-text-inverted)',
+
+              'app-border': 'var(--color-border)',
+            }
+          }
+        }
+      }
+    </script>
   <script type="importmap">
 {
   "imports": {
@@ -171,7 +374,8 @@
     "recharts": "https://aistudiocdn.com/recharts@^3.3.0",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
     "react/": "https://aistudiocdn.com/react@^19.2.0/",
-    "react": "https://aistudiocdn.com/react@^19.2.0"
+    "react": "https://aistudiocdn.com/react@^19.2.0",
+    "@supabase/supabase-js": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm"
   }
 }
 </script>

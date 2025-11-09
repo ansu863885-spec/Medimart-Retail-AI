@@ -2,6 +2,7 @@
   "name": "Copy of Medimart Retail – Pharmacy Billing & ERP",
   "description": "An offline-first, AI-assisted Pharmacy Billing & ERP system. It automates purchase entry, POS sales, GST filing, and inventory management with batch/expiry tracking, all within a clean, trustworthy interface.",
   "requestFramePermissions": [
-    "microphone"
+    "microphone",
+    "camera"
   ]
 }

@@ -38,6 +38,7 @@ const ProfessionalTemplate: React.FC<TemplateProps> = ({ bill }) => {
         )}
         <h1 className="text-2xl font-bold uppercase">{bill.pharmacy.pharmacyName}</h1>
         <p className="text-sm">{bill.pharmacy.gstNumber}</p>
+        {/* FIX: Corrected reference to 'pharmacy' object. It should be accessed via 'bill.pharmacy'. */}
         <p className="text-xs">{`Phone no.: ${bill.pharmacy.phone} Email: ${bill.pharmacy.email}`}</p>
         <h2 className="text-xl font-semibold mt-4 border-b-2 border-t-2 border-gray-800 py-1">Bill of Supply</h2>
       </div>
@@ -47,6 +48,7 @@ const ProfessionalTemplate: React.FC<TemplateProps> = ({ bill }) => {
         <div>
           <p className="font-semibold">Bill To</p>
           <p>{bill.customerName}</p>
+          {bill.referredBy && <p><span className="font-semibold">Referred by (RMP):</span> {bill.referredBy}</p>}
         </div>
         <div className="text-right">
           <p><span className="font-semibold">Invoice No.:</span> {bill.id}</p>
@@ -69,7 +71,7 @@ const ProfessionalTemplate: React.FC<TemplateProps> = ({ bill }) => {
         </thead>
         <tbody>
           {bill.items.map((item, index) => {
-            const totalMrp = item.mrp * item.quantity;
+            const totalMrp = (item.mrp || 0) * (item.quantity || 0);
             const discountAmount = totalMrp * ((item.discountPercent || 0) / 100);
             const finalAmount = totalMrp - discountAmount;
             return (
@@ -77,13 +79,13 @@ const ProfessionalTemplate: React.FC<TemplateProps> = ({ bill }) => {
                 <td className="py-1.5">{index + 1}</td>
                 <td className="py-1.5">{item.name}</td>
                 <td className="py-1.5 text-center">{item.quantity}</td>
-                <td className="py-1.5 text-center">{item.packSize || '-'}</td>
-                <td className="py-1.5 text-right">₹{item.mrp.toFixed(2)}</td>
+                <td className="py-1.5 text-center">{item.packType || '-'}</td>
+                <td className="py-1.5 text-right">₹{(item.mrp || 0).toFixed(2)}</td>
                 <td className="py-1.5 text-right">
-                    <div>₹{discountAmount.toFixed(2)}</div>
-                    <div className="text-xs text-gray-500">({item.discountPercent?.toFixed(2) || 0}%)</div>
+                    <div>₹{(discountAmount || 0).toFixed(2)}</div>
+                    <div className="text-xs text-gray-500">({(item.discountPercent || 0).toFixed(2)}%)</div>
                 </td>
-                <td className="py-1.5 text-right font-semibold">₹{finalAmount.toFixed(2)}</td>
+                <td className="py-1.5 text-right font-semibold">₹{(finalAmount || 0).toFixed(2)}</td>
               </tr>
             )
           })}
@@ -93,8 +95,8 @@ const ProfessionalTemplate: React.FC<TemplateProps> = ({ bill }) => {
             <td colSpan={2} className="py-1.5 text-left">Total</td>
             <td className="py-1.5 text-center">{totalQuantity}</td>
             <td colSpan={2}></td>
-            <td className="py-1.5 text-right">₹{billDetails.totalDiscount.toFixed(2)}</td>
-            <td className="py-1.5 text-right">₹{bill.total.toFixed(2)}</td>
+            <td className="py-1.5 text-right">₹{(billDetails.totalDiscount || 0).toFixed(2)}</td>
+            <td className="py-1.5 text-right">₹{(bill.total || 0).toFixed(2)}</td>
           </tr>
         </tfoot>
       </table>
@@ -104,7 +106,7 @@ const ProfessionalTemplate: React.FC<TemplateProps> = ({ bill }) => {
         <div className="w-7/12 space-y-3">
           <div className="p-2 bg-gray-100 rounded">
             <p className="font-semibold">Invoice Amount In Words</p>
-            <p>{numberToWords(bill.total)}</p>
+            <p>{numberToWords(bill.total || 0)}</p>
           </div>
           <div className="p-2">
             <p className="font-semibold">Terms and conditions</p>
@@ -112,11 +114,11 @@ const ProfessionalTemplate: React.FC<TemplateProps> = ({ bill }) => {
           </div>
         </div>
         <div className="w-4/12 space-y-1">
-          <div className="flex justify-between"><span className="font-semibold">Sub Total</span> <span>₹{bill.total.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span className="font-semibold">Total</span> <span className="font-bold">₹{bill.total.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span className="font-semibold">Received</span> <span>₹{bill.amountReceived.toFixed(2)}</span></div>
-          <div className="flex justify-between"><span className="font-semibold">Balance</span> <span>₹{newBalance.toFixed(2)}</span></div>
-          <div className="flex justify-between mt-2 pt-2 border-t"><span className="font-semibold text-green-600">You Saved</span> <span className="font-semibold text-green-600">₹{billDetails.totalDiscount.toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="font-semibold">Sub Total</span> <span>₹{(bill.total || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="font-semibold">Total</span> <span className="font-bold">₹{(bill.total || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="font-semibold">Received</span> <span>₹{(bill.amountReceived || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between"><span className="font-semibold">Balance</span> <span>₹{(newBalance || 0).toFixed(2)}</span></div>
+          <div className="flex justify-between mt-2 pt-2 border-t"><span className="font-semibold text-green-600">You Saved</span> <span className="font-semibold text-green-600">₹{(billDetails.totalDiscount || 0).toFixed(2)}</span></div>
         </div>
       </div>
 

@@ -7,13 +7,13 @@ import AddPromotionModal from '../components/AddPromotionModal';
 
 // Icons
 const EditIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
 );
 const TrashIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" {...props}><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>
 );
 const ChevronDownIcon = (props: React.SVGProps<SVGSVGElement>) => (
-    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m6 9 6 6 6-6"/></svg>
+    <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}><path d="m6 9 6 6 6-6"/></svg>
 );
 
 
@@ -69,62 +69,62 @@ const CatalogManagement: React.FC<CatalogManagementProps> = (props) => {
     };
 
     const StatusBadge: React.FC<{ isActive: boolean }> = ({ isActive }) => (
-        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${isActive ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+        <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-medium ${isActive ? 'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-200' : 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-200'}`}>
             {isActive ? 'Active' : 'Inactive'}
         </span>
     );
     
     return (
-        <main className="flex-1 p-6 bg-[#F7FAF8] overflow-y-auto page-fade-in">
-            <h1 className="text-3xl font-bold text-[#1C1C1C]">Catalog Management</h1>
-            <p className="text-gray-500 mt-1">Manage product classifications, tags, and promotions in one place.</p>
+        <main className="flex-1 p-6 bg-app-bg overflow-y-auto page-fade-in">
+            <h1 className="text-3xl font-bold text-app-text-primary">Catalog Management</h1>
+            <p className="text-app-text-secondary mt-1">Manage product classifications, tags, and promotions in one place.</p>
             
             <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Categories & Sub-Categories */}
                 <div className="lg:col-span-1 space-y-4">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-semibold text-gray-800">Product Classification</h2>
-                        <button onClick={() => openCategoryModal()} className="px-3 py-1.5 text-sm font-semibold text-white bg-[#11A66C] rounded-lg shadow-sm hover:bg-[#0f5132]">
+                        <h2 className="text-xl font-semibold text-app-text-primary">Product Classification</h2>
+                        <button onClick={() => openCategoryModal()} className="px-3 py-1.5 text-sm font-semibold text-primary-text bg-primary rounded-lg shadow-sm hover:bg-primary-dark">
                             + Add Category
                         </button>
                     </div>
                     <div className="space-y-3">
                       {props.categories.map(category => (
-                        <div key={category.id} className="bg-white border border-gray-200/80 rounded-lg transition-shadow hover:shadow-md">
+                        <div key={category.id} className="bg-card-bg border border-app-border rounded-lg transition-shadow hover:shadow-md">
                           <div className="p-3 flex justify-between items-center">
                             <div className="flex items-center space-x-3 flex-1 min-w-0" onClick={() => toggleCategory(category.id)} role="button" aria-expanded={expandedCategories.includes(category.id)}>
-                                {category.imageUrl ? <img src={category.imageUrl} alt={category.name} className="w-10 h-10 rounded-md object-cover"/> : <div className="w-10 h-10 rounded-md bg-gray-100"></div>}
+                                {category.imageUrl ? <img src={category.imageUrl} alt={category.name} className="w-10 h-10 rounded-md object-cover"/> : <div className="w-10 h-10 rounded-md bg-hover"></div>}
                                 <div className="min-w-0">
-                                    <h3 className="text-md font-bold text-gray-900 truncate">{category.name}</h3>
+                                    <h3 className="text-md font-bold text-app-text-primary truncate">{category.name}</h3>
                                     <StatusBadge isActive={category.isActive} />
                                 </div>
                             </div>
                             <div className="flex items-center space-x-2 flex-shrink-0">
-                                <button onClick={() => openCategoryModal(category)} className="p-1.5 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100"><EditIcon /></button>
-                                <button onClick={() => toggleCategory(category.id)} className="p-1.5 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100">
+                                <button onClick={() => openCategoryModal(category)} className="p-1.5 text-app-text-secondary hover:text-app-text-primary rounded-full hover:bg-hover"><EditIcon /></button>
+                                <button onClick={() => toggleCategory(category.id)} className="p-1.5 text-app-text-secondary hover:text-app-text-primary rounded-full hover:bg-hover">
                                     <ChevronDownIcon className={`transition-transform ${expandedCategories.includes(category.id) ? 'rotate-180' : ''}`} />
                                 </button>
                             </div>
                           </div>
                           {expandedCategories.includes(category.id) && (
-                            <div className="border-t border-gray-200/80 bg-gray-50/50 pb-2">
+                            <div className="border-t border-app-border bg-hover/50 pb-2">
                                 {props.subCategories.filter(sub => sub.categoryId === category.id).map(sub => (
-                                    <div key={sub.id} className="pl-8 pr-4 py-2 flex justify-between items-center hover:bg-gray-100">
+                                    <div key={sub.id} className="pl-8 pr-4 py-2 flex justify-between items-center hover:bg-hover">
                                         <div className="flex items-center space-x-3">
-                                            {sub.imageUrl ? <img src={sub.imageUrl} alt={sub.name} className="w-8 h-8 rounded object-cover"/> : <div className="w-8 h-8 rounded bg-gray-200"></div>}
+                                            {sub.imageUrl ? <img src={sub.imageUrl} alt={sub.name} className="w-8 h-8 rounded object-cover"/> : <div className="w-8 h-8 rounded bg-gray-200 dark:bg-gray-600"></div>}
                                             <div>
-                                               <p className="text-gray-700 text-sm font-medium">{sub.name}</p>
+                                               <p className="text-app-text-primary text-sm font-medium">{sub.name}</p>
                                                <StatusBadge isActive={sub.isActive} />
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-2">
-                                            <button onClick={() => openSubCategoryModal(sub)} className="p-1.5 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100"><EditIcon /></button>
-                                            <button onClick={() => props.onDeleteSubCategory(sub.id)} className="p-1.5 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50"><TrashIcon/></button>
+                                            <button onClick={() => openSubCategoryModal(sub)} className="p-1.5 text-app-text-secondary hover:text-app-text-primary rounded-full hover:bg-hover"><EditIcon /></button>
+                                            <button onClick={() => props.onDeleteSubCategory(sub.id)} className="p-1.5 text-app-text-secondary hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><TrashIcon/></button>
                                         </div>
                                     </div>
                                 ))}
                                 <div className="pl-8 pr-4 pt-2">
-                                    <button onClick={() => openSubCategoryModal(null, category.id)} className="text-sm font-medium text-[#11A66C] hover:text-[#0f5132]">+ Add Sub-category</button>
+                                    <button onClick={() => openSubCategoryModal(null, category.id)} className="text-sm font-medium text-primary hover:text-primary-dark">+ Add Sub-category</button>
                                 </div>
                             </div>
                           )}
@@ -136,8 +136,8 @@ const CatalogManagement: React.FC<CatalogManagementProps> = (props) => {
                 {/* Right Column: Promotions */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="flex justify-between items-center">
-                        <h2 className="text-xl font-semibold text-gray-800">Tags & Promotions</h2>
-                        <button onClick={() => openPromotionModal()} className="px-3 py-1.5 text-sm font-semibold text-white bg-[#11A66C] rounded-lg shadow-sm hover:bg-[#0f5132]">
+                        <h2 className="text-xl font-semibold text-app-text-primary">Tags & Promotions</h2>
+                        <button onClick={() => openPromotionModal()} className="px-3 py-1.5 text-sm font-semibold text-primary-text bg-primary rounded-lg shadow-sm hover:bg-primary-dark">
                             + Add Tag
                         </button>
                     </div>
@@ -149,18 +149,18 @@ const CatalogManagement: React.FC<CatalogManagementProps> = (props) => {
                                 <Card key={promo.id} className="p-4 flex flex-col justify-between">
                                     <div>
                                         <div className="flex justify-between items-start">
-                                            <h3 className="text-md font-bold text-gray-900">{promo.name}</h3>
-                                            <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium capitalize ${promo.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{promo.status}</span>
+                                            <h3 className="text-md font-bold text-app-text-primary">{promo.name}</h3>
+                                            <span className={`inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-medium capitalize ${promo.status === 'active' ? 'bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-200' : 'bg-hover text-app-text-primary dark:bg-gray-700 dark:text-gray-200'}`}>{promo.status}</span>
                                         </div>
-                                        <p className="text-sm text-gray-500 mt-1">{promo.description}</p>
+                                        <p className="text-sm text-app-text-secondary mt-1">{promo.description}</p>
                                         <div className="mt-3 text-sm space-y-1">
-                                            <p><span className="font-semibold text-indigo-600">{discount} OFF</span></p>
-                                            <p className="text-gray-600"><strong>Active:</strong> {validity}</p>
+                                            <p><span className="font-semibold text-indigo-600 dark:text-indigo-400">{discount} OFF</span></p>
+                                            <p className="text-app-text-secondary"><strong>Active:</strong> {validity}</p>
                                         </div>
                                     </div>
-                                    <div className="mt-4 pt-3 border-t border-gray-200/80 flex justify-end items-center space-x-2">
-                                        <button onClick={() => openPromotionModal(promo)} className="p-1.5 text-gray-500 hover:text-gray-800 rounded-full hover:bg-gray-100"><EditIcon /></button>
-                                        <button onClick={() => props.onDeletePromotion(promo.id)} className="p-1.5 text-gray-500 hover:text-red-600 rounded-full hover:bg-red-50"><TrashIcon /></button>
+                                    <div className="mt-4 pt-3 border-t border-app-border flex justify-end items-center space-x-2">
+                                        <button onClick={() => openPromotionModal(promo)} className="p-1.5 text-app-text-secondary hover:text-app-text-primary rounded-full hover:bg-hover"><EditIcon /></button>
+                                        <button onClick={() => props.onDeletePromotion(promo.id)} className="p-1.5 text-app-text-secondary hover:text-red-600 rounded-full hover:bg-red-100 dark:hover:bg-red-900/50"><TrashIcon /></button>
                                     </div>
                                 </Card>
                             )

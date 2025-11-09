@@ -16,6 +16,10 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
         brand: '',
         category: '',
         stock: 0,
+        unitsPerPack: 10,
+        packType: '',
+        packUnit: 'Strip',
+        baseUnit: 'Tablet',
         minStockLimit: 10,
         batch: '',
         expiry: '',
@@ -24,6 +28,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
         gstPercent: 0,
         hsnCode: '',
         composition: '',
+        barcode: '',
     };
     const [product, setProduct] = useState(initialState);
     const [errors, setErrors] = useState<Partial<Record<keyof typeof product, string>>>({});
@@ -31,15 +36,25 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
         const { name, value, type } = e.target;
         
-        let processedValue: string | number = value;
-        if (type === 'number') {
-            processedValue = parseFloat(value) || 0;
-        }
+        if (name === 'stockPacks') {
+            const newPacks = parseInt(value, 10) || 0;
+            const currentLoose = product.stock % (product.unitsPerPack || 1);
+            setProduct(prev => ({...prev, stock: (newPacks * (prev.unitsPerPack || 1)) + currentLoose}));
+        } else if (name === 'stockLoose') {
+            const newLoose = parseInt(value, 10) || 0;
+            const currentPacks = Math.floor(product.stock / (product.unitsPerPack || 1));
+            setProduct(prev => ({...prev, stock: (currentPacks * (prev.unitsPerPack || 1)) + newLoose}));
+        } else {
+            let processedValue: string | number = value;
+            if (type === 'number') {
+                processedValue = parseFloat(value) || 0;
+            }
 
-        setProduct(prev => ({
-            ...prev,
-            [name]: processedValue,
-        }));
+            setProduct(prev => ({
+                ...prev,
+                [name]: processedValue,
+            }));
+        }
 
         if (errors[name as keyof typeof errors]) {
             setErrors(prev => ({ ...prev, [name]: undefined }));
@@ -51,6 +66,7 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
         if (!product.name.trim()) newErrors.name = "Product name is required.";
         if (!product.category) newErrors.category = "Category is required.";
         if (product.stock < 0) newErrors.stock = "Stock cannot be negative.";
+        if (product.unitsPerPack < 1) newErrors.unitsPerPack = "Units per pack must be at least 1.";
         if (product.minStockLimit < 0) newErrors.minStockLimit = "Minimum stock cannot be negative.";
         if (product.purchasePrice <= 0) newErrors.purchasePrice = "Purchase price must be positive.";
         if (product.mrp <= 0) newErrors.mrp = "MRP must be positive.";
@@ -69,6 +85,9 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
             onClose();
         }
     };
+    
+    const stockPacks = Math.floor(product.stock / (product.unitsPerPack || 1));
+    const stockLoose = product.stock % (product.unitsPerPack || 1);
 
     return (
         <Modal isOpen={isOpen} onClose={onClose} title="Add New Inventory Product">
@@ -99,13 +118,43 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
                     <input type="text" name="hsnCode" id="hsnCode" value={product.hsnCode} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
                 </div>
                  <div>
+                    <label htmlFor="barcode" className="block text-sm font-medium text-gray-700">Barcode</label>
+                    <input type="text" name="barcode" id="barcode" value={product.barcode || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
+                </div>
+                 <div>
                     <label htmlFor="batch" className="block text-sm font-medium text-gray-700">Batch Number</label>
                     <input type="text" name="batch" id="batch" value={product.batch} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
                 </div>
-                 <div>
-                    <label htmlFor="stock" className="block text-sm font-medium text-gray-700">Stock Quantity *</label>
-                    <input type="number" name="stock" id="stock" value={product.stock} onChange={handleChange} min="0" className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.stock ? 'border-red-500 ring-red-500' : 'border-gray-300 focus:ring-[#11A66C] focus:border-[#11A66C]'}`} />
-                     {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
+                <div className="lg:col-span-3 grid grid-cols-3 gap-4 items-end">
+                    <div>
+                        <label htmlFor="stockPacks" className="block text-sm font-medium text-gray-700">Stock (Packs)</label>
+                        <input type="number" name="stockPacks" id="stockPacks" value={stockPacks} onChange={handleChange} min="0" className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.stock ? 'border-red-500' : 'border-gray-300'}`} />
+                    </div>
+                    <div>
+                        <label htmlFor="stockLoose" className="block text-sm font-medium text-gray-700">Stock (Loose)</label>
+                        <input type="number" name="stockLoose" id="stockLoose" value={stockLoose} onChange={handleChange} min="0" className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.stock ? 'border-red-500' : 'border-gray-300'}`} />
+                    </div>
+                    <div className="pb-2">
+                        <p className="text-sm text-gray-500">Total Units: <span className="font-semibold text-gray-800">{product.stock}</span></p>
+                        {errors.stock && <p className="text-red-500 text-xs mt-1">{errors.stock}</p>}
+                    </div>
+                </div>
+                <div>
+                    <label htmlFor="unitsPerPack" className="block text-sm font-medium text-gray-700">Units Per Pack *</label>
+                    <input type="number" name="unitsPerPack" id="unitsPerPack" value={product.unitsPerPack} onChange={handleChange} min="1" className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.unitsPerPack ? 'border-red-500 ring-red-500' : 'border-gray-300 focus:ring-[#11A66C] focus:border-[#11A66C]'}`} />
+                    {errors.unitsPerPack && <p className="text-red-500 text-xs mt-1">{errors.unitsPerPack}</p>}
+                </div>
+                <div>
+                    <label htmlFor="packType" className="block text-sm font-medium text-gray-700">Packing Type (e.g., 10's Strip)</label>
+                    <input type="text" name="packType" id="packType" value={product.packType || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
+                </div>
+                <div>
+                    <label htmlFor="packUnit" className="block text-sm font-medium text-gray-700">Pack Unit (e.g., Strip)</label>
+                    <input type="text" name="packUnit" id="packUnit" value={product.packUnit || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
+                </div>
+                <div>
+                    <label htmlFor="baseUnit" className="block text-sm font-medium text-gray-700">Base Unit (e.g., Tablet)</label>
+                    <input type="text" name="baseUnit" id="baseUnit" value={product.baseUnit || ''} onChange={handleChange} className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm p-2 focus:ring-[#11A66C] focus:border-[#11A66C]" />
                 </div>
                 <div>
                     <label htmlFor="minStockLimit" className="block text-sm font-medium text-gray-700">Minimum Stock Limit *</label>
@@ -118,12 +167,12 @@ const AddProductModal: React.FC<AddProductModalProps> = ({ isOpen, onClose, onAd
                     {errors.expiry && <p className="text-red-500 text-xs mt-1">{errors.expiry}</p>}
                 </div>
                  <div>
-                    <label htmlFor="purchasePrice" className="block text-sm font-medium text-gray-700">Purchase Price *</label>
+                    <label htmlFor="purchasePrice" className="block text-sm font-medium text-gray-700">Purchase Price (per pack) *</label>
                     <input type="number" name="purchasePrice" id="purchasePrice" value={product.purchasePrice} onChange={handleChange} min="0" step="0.01" className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.purchasePrice ? 'border-red-500 ring-red-500' : 'border-gray-300 focus:ring-[#11A66C] focus:border-[#11A66C]'}`} />
                     {errors.purchasePrice && <p className="text-red-500 text-xs mt-1">{errors.purchasePrice}</p>}
                 </div>
                  <div>
-                    <label htmlFor="mrp" className="block text-sm font-medium text-gray-700">MRP *</label>
+                    <label htmlFor="mrp" className="block text-sm font-medium text-gray-700">MRP (per pack) *</label>
                     <input type="number" name="mrp" id="mrp" value={product.mrp} onChange={handleChange} min="0" step="0.01" className={`mt-1 block w-full border rounded-md shadow-sm p-2 ${errors.mrp ? 'border-red-500 ring-red-500' : 'border-gray-300 focus:ring-[#11A66C] focus:border-[#11A66C]'}`} />
                     {errors.mrp && <p className="text-red-500 text-xs mt-1">{errors.mrp}</p>}
                 </div>

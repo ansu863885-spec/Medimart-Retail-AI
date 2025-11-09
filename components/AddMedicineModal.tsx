@@ -9,10 +9,10 @@ interface AddMedicineModalProps {
 }
 
 const initialState: Omit<Medicine, 'id' | 'createdAt' | 'updatedAt'> = {
-    name: '', description: '', composition: '', brand: '', manufacturer: '', marketer: '',
+    name: '', description: '', composition: '', manufacturer: '', marketer: '',
     returnDays: 0, expiryDurationMonths: 0, uses: '', benefits: '', sideEffects: '', directions: '',
     countryOfOrigin: 'India', storage: '', hsnCode: '', gstRate: 5,
-    isPrescriptionRequired: true, isActive: true, imageUrl: ''
+    isPrescriptionRequired: true, isActive: true, imageUrl: '', barcode: ''
 };
 
 type FormErrors = Partial<Record<keyof typeof initialState, string>>;
@@ -34,7 +34,6 @@ const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onClose, on
     const validate = useCallback(() => {
         const newErrors: FormErrors = {};
         if (!formState.name.trim()) newErrors.name = "Name is required.";
-        if (!formState.brand.trim()) newErrors.brand = "Brand is required.";
         if (!formState.description.trim()) newErrors.description = "Description is required.";
         if (!formState.composition.trim()) newErrors.composition = "Composition is required.";
         if (!formState.hsnCode.trim()) newErrors.hsnCode = "HSN Code is required.";
@@ -97,7 +96,6 @@ const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onClose, on
                     {/* Section 1 */}
                     <fieldset className="grid grid-cols-1 md:grid-cols-2 gap-4 border-b pb-4">
                         {renderInput('name', 'Name')}
-                        {renderInput('brand', 'Brand')}
                         {renderTextarea('composition', 'Composition')}
                         {renderTextarea('description', 'Description')}
                     </fieldset>
@@ -114,7 +112,7 @@ const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onClose, on
                             </select>
                             {errors.gstRate && <p className="text-xs text-red-500 mt-1">{errors.gstRate}</p>}
                         </div>
-                        {renderInput('storage', 'Storage', 'text', true)}
+                        {renderInput('barcode', 'Barcode', 'text', true)}
                     </fieldset>
                     
                     {/* Section 3 */}
@@ -128,6 +126,7 @@ const AddMedicineModal: React.FC<AddMedicineModalProps> = ({ isOpen, onClose, on
                      <fieldset className="grid grid-cols-1 md:grid-cols-3 gap-4 items-start">
                         {renderInput('returnDays', 'Return Days', 'number', true)}
                         {renderInput('expiryDurationMonths', 'Expiry Duration (Months)', 'number', true)}
+                        {renderInput('storage', 'Storage', 'text', true)}
                         <div>
                             <label className="block text-sm font-medium text-gray-700">Image *</label>
                             <input type="file" name="image" accept="image/*" onChange={handleFileChange} className="mt-1 text-sm"/>

@@ -57,8 +57,8 @@ const PurchaseOrderTemplate: React.FC<TemplateProps> = ({ purchaseOrder, pharmac
                 <p className="text-xs text-gray-500">{item.brand}</p>
               </td>
               <td className="py-2 px-3 text-center">{item.quantity}</td>
-              <td className="py-2 px-3 text-right">₹{item.purchasePrice.toFixed(2)}</td>
-              <td className="py-2 px-3 text-right font-semibold">₹{(item.purchasePrice * item.quantity).toFixed(2)}</td>
+              <td className="py-2 px-3 text-right">₹{(item.purchasePrice || 0).toFixed(2)}</td>
+              <td className="py-2 px-3 text-right font-semibold">₹{((item.purchasePrice || 0) * (item.quantity || 0)).toFixed(2)}</td>
             </tr>
           ))}
         </tbody>
@@ -68,18 +68,18 @@ const PurchaseOrderTemplate: React.FC<TemplateProps> = ({ purchaseOrder, pharmac
         <div className="w-64 space-y-2 text-sm">
           <div className="flex justify-between">
             <span>Subtotal:</span>
-            <span className="font-medium">₹{purchaseOrder.totalAmount.toFixed(2)}</span>
+            <span className="font-medium">₹{(purchaseOrder.totalAmount || 0).toFixed(2)}</span>
           </div>
           <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
             <span>TOTAL:</span>
-            <span>₹{purchaseOrder.totalAmount.toFixed(2)}</span>
+            <span>₹{(purchaseOrder.totalAmount || 0).toFixed(2)}</span>
           </div>
         </div>
       </div>
       
       <div className="mt-6 text-sm">
         <p className="font-semibold">Amount in words:</p>
-        <p>{numberToWords(purchaseOrder.totalAmount)}</p>
+        <p>{numberToWords(purchaseOrder.totalAmount || 0)}</p>
       </div>
 
       <footer className="mt-12 pt-4 border-t text-sm text-gray-600">

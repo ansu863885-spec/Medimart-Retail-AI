@@ -1,5 +1,5 @@
 import { GoogleGenAI, Type, Modality } from "@google/genai";
-import type { ExtractedPurchaseBill } from "../types";
+import type { ExtractedPurchaseBill, PurchaseItem } from "../types";
 
 const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
 
@@ -167,101 +167,109 @@ export const generatePromotionalImage = async (prompt: string, logoUrl: string):
     }
 };
 
-export const extractPurchaseDetailsFromBill = async (billImageBase64: string, buyerName: string): Promise<ExtractedPurchaseBill> => {
+export const extractPurchaseDetailsFromBill = async (billImagesBase64: string[], buyerName: string): Promise<ExtractedPurchaseBill> => {
     try {
-        const imagePart = {
+        const imageParts = billImagesBase64.map(imgBase64 => ({
             inlineData: {
-                mimeType: 'image/jpeg',
-                data: billImageBase64,
+                mimeType: 'image/jpeg', // Assuming JPEG, can be inferred if needed
+                data: imgBase64,
             },
-        };
+        }));
 
-        const textPart = {
-            text: `You are an expert pharmacy data entry assistant. Your task is to meticulously analyze the provided pharmacy purchase bill image.
+        const prompt = `
+You are a meticulous, hyper-attentive data entry specialist for an Indian pharmacy ERP system. Your ONLY task is to extract structured data from an image of a purchase bill (invoice). You must be extremely accurate.
 
-This is a purchase bill for a pharmacy named "${buyerName}". Your goal is to extract the details of the **SELLER (Supplier/Distributor)**. Do not extract details for the buyer, which is "${buyerName}".
+**Core Principles (NON-NEGOTIABLE):**
+1.  **Item Uniqueness:** Every single line item on the invoice is unique. Even if two lines have the same product name, if they have different batch numbers, prices, or expiry dates, they MUST be extracted as separate items in the final JSON array. Do NOT merge them. This is critical for accurate batch tracking.
+2.  **Mathematical Supremacy (The Golden Rule):** For EVERY single item, you MUST verify your extracted unit price. The unit price (often 'Rate' or 'Pur. Rate') is the most critical and error-prone field.
+    - **Process:** Calculate \`Quantity × Unit Price\`.
+    - **Verification:** This result should closely match the 'Amount' or 'Total' for that line item *before* tax.
+    - **Correction:** If it doesn't match, you MUST re-examine the image to find the correct unit price. Do NOT invent a price. If a price seems inclusive of tax, calculate the pre-tax base price. If you cannot find a price that satisfies the math, flag it. This step is CRITICAL.
+3.  **Buyer Identification:** The buyer is "${buyerName}". Ensure you are not extracting items billed to a different entity.
+4.  **Strict Schema Adherence:** Your final output MUST be a single, valid JSON object matching the provided schema. Do not add extra keys or commentary.
 
-**Supplier (Seller) Information:**
-1.  **Supplier Name:** The name of the distributor or company that issued the invoice. This is the **SELLER**. It must NOT be "${buyerName}".
-2.  **Supplier GSTIN:** The GST Identification Number of the supplier/seller.
-3.  **Invoice Number:** The unique bill or invoice number.
-4.  **Bill Date:** The date of the invoice. Parse any format (e.g., DD-MM-YYYY, MM/DD/YY, DD Mon YYYY) and return it strictly in **YYYY-MM-DD** format.
+**Step-by-Step Thinking Process (MANDATORY):**
+1.  **Layout Analysis:** First, analyze the image's overall layout. Identify supplier details (name, GSTIN), invoice number, and date. Identify the main item table and its columns.
+2.  **Line-by-Line Extraction & The Golden Rule:** Go through the item table row by row. Extract all details for each line as a distinct object. APPLY THE GOLDEN RULE to validate the \`purchasePrice\`. If it doesn't match, re-evaluate. Is there a discount? Is the price tax-inclusive? Find the correct base unit price.
+3.  **Final Review:** Review your entire JSON output against the image one last time, ensuring each line item from the bill corresponds to one object in the "items" array.
 
-**Line Items:**
-For each product listed, extract the following details. Be very precise.
+**Field-Specific Rules:**
+-   \`supplier\`: Supplier/Distributor name.
+-   \`invoiceNumber\`: Bill/Invoice number.
+-   \`date\`: Bill/Invoice date. Format as YYYY-MM-DD. If year is missing, assume current year.
+-   \`supplierGstNumber\`: Supplier's GSTIN, if visible.
+-   \`items\`: An array of objects. **Each object represents ONE line item from the bill.**
+    -   \`name\`: The product name. Be precise.
+    -   \`batch\`: Batch number.
+    -   \`expiry\`: Expiry date. Convert "12/25" or "Dec 25" to "2025-12-31".
+    -   \`quantity\`: The number of units/strips/bottles purchased.
+    -   \`purchasePrice\`: The price PER UNIT *before* GST. This is the most important field. Double-check with the Golden Rule.
+    -   \`mrp\`: Maximum Retail Price per unit.
+    -   \`gstPercent\`: GST percentage (e.g., 12). If not present, default to 5.
+    -   \`hsnCode\`: HSN code for the item.
+    -   \`discountPercent\`: Item-level discount percentage. Default to 0 if not present.
+    -   \`brand\`: If a brand/company name is distinct from the product name, put it here. Otherwise, leave it empty.
+`;
 
-*   **name:** The primary name of the product.
-*   **brand:** The brand or manufacturer of the product.
-*   **category:** Classify the product into one of these categories: "Pain Relief", "Vitamins & Supplements", "First Aid", "Cold & Cough", "Personal Care", "Baby Care", "Prescription Drugs", "Herbal & Ayurvedic", "Medical Devices", "General".
-*   **hsnCode:** The HSN/SAC code. If not present, leave it as an empty string.
-*   **batch:** The batch number or lot number.
-*   **expiry:** The expiry date. Convert it to **YYYY-MM-DD** format.
-*   **quantity:** The number of units purchased. This is crucial. It is often labeled 'Qty'. If the quantity is written in a format like "10+2" or "7+1", this signifies a scheme where you get free items. **Only extract the first number (the purchased quantity), not the free quantity.** For example, for "10+2", you must extract \`10\`. For "7+1", extract \`7\`. Do not add them together. Distinguish the quantity from other numbers on the line like rate, price, or total amount.
-*   **purchasePrice:** The **price per single unit** *before* any taxes (GST). Do not use the total line item amount.
-*   **mrp:** The Maximum Retail Price **per single unit**.
-*   **gstPercent:** The GST percentage applied to the item (e.g., 5, 12, 18).
+        const textPart = { text: prompt };
 
-**Instructions:**
-*   Pay close attention to unit prices versus total amounts.
-*   Provide the response strictly in the specified JSON format.
-*   If a specific value for a field is not found on the bill, use an appropriate empty or default value (e.g., an empty string for text, 0 for numbers).`,
-        };
-
-        const responseSchema = {
-            type: Type.OBJECT,
-            properties: {
-                supplier: { type: Type.STRING, description: "Supplier's name" },
-                supplierGstNumber: { type: Type.STRING, description: "Supplier's GST Identification Number" },
-                invoiceNumber: { type: Type.STRING, description: "Invoice or Bill number" },
-                date: { type: Type.STRING, description: "Bill date in YYYY-MM-DD format" },
-                items: {
-                    type: Type.ARRAY,
-                    description: "List of purchased items",
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            name: { type: Type.STRING, description: "Product name" },
-                            brand: { type: Type.STRING, description: "Product brand or manufacturer" },
-                            category: { type: Type.STRING, description: "Product category (e.g., Pain Relief, Vitamins)" },
-                            hsnCode: { type: Type.STRING, description: "HSN/SAC code for the product" },
-                            batch: { type: Type.STRING, description: "Batch number" },
-                            expiry: { type: Type.STRING, description: "Expiry date (YYYY-MM-DD)" },
-                            quantity: { type: Type.NUMBER, description: "Quantity purchased" },
-                            purchasePrice: { type: Type.NUMBER, description: "Price per unit without tax" },
-                            mrp: { type: Type.NUMBER, description: "Maximum Retail Price per unit" },
-                            gstPercent: { type: Type.NUMBER, description: "GST percentage for the item" },
-                        },
-                        required: ["name", "category", "quantity", "purchasePrice", "mrp"]
-                    }
-                }
-            },
-            required: ["supplier", "invoiceNumber", "date", "items"],
-        };
-        
         const response = await ai.models.generateContent({
             model: 'gemini-2.5-flash',
-            contents: { parts: [imagePart, textPart] },
+            contents: { parts: [textPart, ...imageParts] },
             config: {
                 responseMimeType: "application/json",
-                responseSchema,
+                responseSchema: {
+                    type: Type.OBJECT,
+                    properties: {
+                        supplier: { type: Type.STRING },
+                        invoiceNumber: { type: Type.STRING },
+                        date: { type: Type.STRING, description: "YYYY-MM-DD format" },
+                        supplierGstNumber: { type: Type.STRING, nullable: true },
+                        items: {
+                            type: Type.ARRAY,
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    name: { type: Type.STRING },
+                                    batch: { type: Type.STRING },
+                                    expiry: { type: Type.STRING, description: "YYYY-MM-DD format" },
+                                    quantity: { type: Type.NUMBER },
+                                    purchasePrice: { type: Type.NUMBER },
+                                    mrp: { type: Type.NUMBER },
+                                    gstPercent: { type: Type.NUMBER },
+                                    hsnCode: { type: Type.STRING, nullable: true },
+                                    discountPercent: { type: Type.NUMBER, nullable: true },
+                                    packType: { type: Type.STRING, nullable: true },
+                                    oldMrp: { type: Type.NUMBER, nullable: true },
+                                    brand: { type: Type.STRING, nullable: true },
+                                    composition: { type: Type.STRING, nullable: true },
+                                },
+                                required: ["name", "batch", "expiry", "quantity", "purchasePrice", "mrp", "gstPercent"]
+                            }
+                        }
+                    },
+                    required: ["supplier", "invoiceNumber", "date", "items"]
+                },
             },
         });
 
-        const extractedData = JSON.parse(response.text);
-        
-        if (!extractedData.supplier || !Array.isArray(extractedData.items)) {
-            throw new Error("Invalid data structure received from AI.");
+        const result: ExtractedPurchaseBill = JSON.parse(response.text);
+
+        if (!result || !result.items) {
+            throw new Error("AI could not extract valid data. The response was empty or malformed.");
         }
 
-        return extractedData as ExtractedPurchaseBill;
+        return result;
 
     } catch (error) {
-        console.error("Error extracting bill details:", error);
-        return {
-            supplier: 'Error Reading Bill',
-            invoiceNumber: '',
-            date: new Date().toISOString().split('T')[0],
-            items: [],
-        };
+        console.error("Error extracting details from bill:", error);
+        if (error instanceof Error) {
+            // Provide a more user-friendly message for common errors
+            if (error.message.includes("JSON")) {
+                throw new Error("Extraction failed: The AI returned an invalid format. Please try again with a clearer image.");
+            }
+             throw new Error(`Extraction failed: ${error.message}`);
+        }
+        throw new Error("An unknown error occurred during bill extraction.");
     }
 };

@@ -176,165 +176,149 @@ const Chatbot: React.FC<ChatbotProps> = ({ appData }) => {
                         scriptProcessor.connect(context.destination);
                     },
                     onmessage: async (message: LiveServerMessage) => {
-                        let inputChunk = '';
-                        let outputChunk = '';
+                        const context = outputAudioContextRef.current;
+                        if (!context) return;
 
-                        if (message.serverContent?.inputTranscription) {
-                            inputChunk = message.serverContent.inputTranscription.text;
-                            transcriptionRef.current.input += inputChunk;
-                        }
                         if (message.serverContent?.outputTranscription) {
-                            outputChunk = message.serverContent.outputTranscription.text;
-                            transcriptionRef.current.output += outputChunk;
+                            transcriptionRef.current.output += message.serverContent.outputTranscription.text;
                         }
-                        
-                        if (inputChunk || outputChunk) {
-                            setTranscription(prev => ({
-                                input: prev.input + inputChunk,
-                                output: prev.output + outputChunk,
-                            }));
+                        if (message.serverContent?.inputTranscription) {
+                            transcriptionRef.current.input += message.serverContent.inputTranscription.text;
                         }
+
+                        setTranscription({ ...transcriptionRef.current });
 
                         if (message.serverContent?.turnComplete) {
-                            const finalInput = transcriptionRef.current.input.trim();
-                            const finalOutput = transcriptionRef.current.output.trim();
+                            const fullInput = transcriptionRef.current.input;
+                            const fullOutput = transcriptionRef.current.output;
                             
-                            const newTurnMessages: ChatMessage[] = [];
-                            if (finalInput) newTurnMessages.push({ role: 'user', parts: [{ text: finalInput }] });
-                            if (finalOutput) newTurnMessages.push({ role: 'model', parts: [{ text: finalOutput }] });
-
-                            if (newTurnMessages.length > 0) {
-                                setMessages(prev => [...prev, ...newTurnMessages]);
+                            if (fullInput.trim()) {
+                                setMessages(prev => [...prev, { role: 'user', parts: [{ text: fullInput }] }]);
                             }
-
-                            transcriptionRef.current = {input: '', output: ''};
-                            setTranscription({input: '', output: ''});
+                            if (fullOutput.trim()) {
+                                setMessages(prev => [...prev, { role: 'model', parts: [{ text: fullOutput }] }]);
+                            }
+                            
+                            transcriptionRef.current = { input: '', output: '' };
+                            setTranscription({ input: '', output: '' });
                         }
 
-                        const base64Audio = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+                        const base64Audio = message.serverContent?.modelTurn?.parts?.[0]?.inlineData?.data;
                         if (base64Audio) {
-                            const outputContext = outputAudioContextRef.current!;
-                            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, outputContext.currentTime);
-                            const audioBuffer = await decodeAudioData(decode(base64Audio), outputContext, 24000, 1);
-                            const source = outputContext.createBufferSource();
+                            nextStartTimeRef.current = Math.max(nextStartTimeRef.current, context.currentTime);
+                            const audioBuffer = await decodeAudioData(decode(base64Audio), context, 24000, 1);
+                            const source = context.createBufferSource();
                             source.buffer = audioBuffer;
-                            source.connect(outputContext.destination);
-                            source.addEventListener('ended', () => sourcesRef.current.delete(source));
+                            source.connect(context.destination);
+                            source.addEventListener('ended', () => {
+                                sourcesRef.current.delete(source);
+                            });
+
                             source.start(nextStartTimeRef.current);
                             nextStartTimeRef.current += audioBuffer.duration;
                             sourcesRef.current.add(source);
                         }
+                        
+                        if (message.serverContent?.interrupted) {
+                            for (const source of sourcesRef.current.values()) {
+                                source.stop();
+                            }
+                            sourcesRef.current.clear();
+                            nextStartTimeRef.current = 0;
+                        }
                     },
-                    onerror: (e) => {
-                        console.error('Live session error:', e);
-                        setMessages(prev => [...prev, {role: 'model', parts: [{text: "Sorry, a voice connection error occurred. Please try again."}]}]);
+                    onerror: (err: ErrorEvent) => {
+                        console.error('Live session error:', err);
                         stopListening();
                     },
-                    onclose: () => console.log('Live session closed.'),
-                },
+                    onclose: () => {
+                        console.log('Live session closed.');
+                        stopListening();
+                    }
+                }
             });
-
-            setIsListening(true);
         } catch (error) {
-            console.error("Failed to start listening:", error);
-            setMessages(prev => [...prev, {role: 'model', parts: [{text: "Sorry, I couldn't access your microphone. Please check permissions and try again."}]}]);
+            console.error('Failed to start listening:', error);
+            setIsListening(false);
         }
     }, [stopListening]);
-
-    useEffect(() => {
-        return () => {
-            if (isListening) stopListening();
-        };
-    }, [isListening, stopListening]);
-
-    if (!isOpen) {
-        return (
-            <button
-                onClick={() => setIsOpen(true)}
-                className="fixed bottom-6 right-6 bg-[#11A66C] text-white p-4 rounded-full shadow-lg hover:bg-[#35C48D] transition-transform duration-200 transform hover:scale-110 flex items-center justify-center"
-                aria-label="Open MedTrade AI"
-            >
-                <AiIcon className="w-8 h-8"/>
-            </button>
-        );
-    }
+    
+    const handleMicClick = () => {
+        if (isListening) {
+            stopListening();
+        } else {
+            setIsListening(true);
+            startListening();
+        }
+    };
 
     return (
-        <div className="fixed bottom-6 right-6 w-[400px] h-[600px] bg-white rounded-2xl shadow-2xl flex flex-col z-50 transition-all duration-300">
-            <header className="flex items-center justify-between p-4 border-b bg-gray-50 rounded-t-2xl">
-                <div className="flex items-center">
-                    <AiIcon className="w-6 h-6 text-[#11A66C] mr-2"/>
-                    <h2 className="text-lg font-semibold text-gray-800">MedTrade AI</h2>
-                </div>
-                <button onClick={() => setIsOpen(false)} className="p-1 text-gray-400 rounded-full hover:bg-gray-200" aria-label="Close chat">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        <>
+            <div className={`fixed bottom-6 right-6 z-40 transition-transform duration-300 ${isOpen ? 'translate-y-24 opacity-0' : 'translate-y-0 opacity-100'}`}>
+                <button onClick={() => setIsOpen(true)} className="bg-primary text-white rounded-full p-4 shadow-lg hover:bg-primary-dark">
+                    <AiIcon className="w-8 h-8"/>
                 </button>
-            </header>
-            
-            <main className="flex-1 p-4 overflow-y-auto bg-gray-100/50">
-                <div className="space-y-4">
+            </div>
+
+            <div className={`fixed bottom-6 right-6 z-50 w-96 bg-card-bg rounded-2xl shadow-2xl flex flex-col transition-all duration-300 ${isOpen ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-16 pointer-events-none'}`} style={{ height: '70vh' }}>
+                <div className="flex items-center justify-between p-4 border-b border-app-border">
+                    <h3 className="font-semibold text-app-text-primary">MedTrade AI Assistant</h3>
+                    <button onClick={() => setIsOpen(false)} className="text-app-text-secondary hover:text-app-text-primary">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="w-6 h-6"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                    </button>
+                </div>
+                
+                <div className="flex-1 p-4 overflow-y-auto space-y-4">
                     {messages.map((msg, index) => (
                         <div key={index} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                            <div className={`max-w-xs md:max-w-sm rounded-2xl px-4 py-2 text-sm ${msg.role === 'user' ? 'bg-[#11A66C] text-white' : 'bg-white text-gray-800 border'}`}>
-                                <p className="whitespace-pre-wrap">{msg.parts[0].text}</p>
-                                {msg.parts[0].sources && (
-                                    <div className="mt-2 border-t pt-2">
-                                        <h4 className="text-xs font-bold mb-1">Sources:</h4>
-                                        <ul className="space-y-1">
-                                            {msg.parts[0].sources.map((source, i) => (
-                                                <li key={i}>
-                                                    <a href={source.uri} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline truncate block">
-                                                        {i+1}. {source.title}
-                                                    </a>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                )}
+                            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-2xl ${msg.role === 'user' ? 'bg-primary text-primary-text' : 'bg-hover'}`}>
+                                <p className="text-sm whitespace-pre-wrap">{msg.parts[0].text}</p>
                             </div>
                         </div>
                     ))}
                     {(transcription.input || transcription.output) && (
-                        <div>
-                           {transcription.input && <p className="text-sm text-gray-600 text-right italic">You: {transcription.input}</p>}
-                           {transcription.output && <p className="text-sm text-gray-800 italic">AI: {transcription.output}</p>}
+                        <div className="flex justify-start">
+                            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-2xl bg-hover/50 border border-dashed border-app-border">
+                               {transcription.input && <p className="text-sm text-app-text-secondary">You: {transcription.input}</p>}
+                               {transcription.output && <p className="text-sm text-app-text-primary">AI: {transcription.output}</p>}
+                            </div>
                         </div>
                     )}
                     {isLoading && (
                         <div className="flex justify-start">
-                             <div className="bg-white text-gray-800 border rounded-2xl px-4 py-2 text-sm">
-                                <div className="flex items-center">
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse mr-1.5"></div>
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-75 mr-1.5"></div>
-                                    <div className="w-2 h-2 bg-gray-400 rounded-full animate-pulse delay-150"></div>
-                                </div>
-                             </div>
+                            <div className="max-w-xs lg:max-w-md px-4 py-2 rounded-2xl bg-hover">
+                               <div className="flex items-center space-x-2">
+                                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '200ms' }}></div>
+                                   <div className="w-2 h-2 bg-primary rounded-full animate-pulse" style={{ animationDelay: '400ms' }}></div>
+                               </div>
+                            </div>
                         </div>
                     )}
                     <div ref={messagesEndRef} />
                 </div>
-            </main>
 
-            <footer className="p-4 border-t bg-white rounded-b-2xl">
-                 <div className="flex items-center space-x-2">
-                    <input
-                        type="text"
-                        value={inputValue}
-                        onChange={(e) => setInputValue(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-                        placeholder={isListening ? "Listening..." : "Ask me anything..."}
-                        className="flex-1 px-4 py-2 text-sm border-gray-300 rounded-lg focus:ring-[#11A66C] focus:border-[#11A66C]"
-                        disabled={isLoading || isListening}
-                    />
-                    <button onClick={handleSendMessage} disabled={!inputValue.trim() || isLoading || isListening} className="p-2 text-white bg-[#11A66C] rounded-full hover:bg-[#35C48D] disabled:bg-gray-300 disabled:cursor-not-allowed">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                    </button>
-                    <button onClick={() => isListening ? stopListening() : startListening()} className={`p-2 rounded-full ${isListening ? 'bg-red-500 text-white animate-pulse' : 'text-gray-500 hover:bg-gray-200'}`}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
-                    </button>
-                 </div>
-            </footer>
-        </div>
+                <div className="p-4 border-t border-app-border">
+                    <div className="flex items-center space-x-2">
+                        <input 
+                            type="text" 
+                            value={inputValue}
+                            onChange={(e) => setInputValue(e.target.value)}
+                            onKeyDown={(e) => e.key === 'Enter' && handleSendMessage()}
+                            placeholder={isListening ? 'Listening...' : 'Ask me anything...'}
+                            className="flex-1 px-4 py-2 border-app-border rounded-lg bg-input-bg"
+                            disabled={isLoading || isListening}
+                        />
+                        <button onClick={handleMicClick} className={`p-2 rounded-full ${isListening ? 'bg-red-500 text-white' : 'text-app-text-secondary hover:bg-hover'}`} disabled={isLoading}>
+                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="w-5 h-5"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg>
+                        </button>
+                        <button onClick={handleSendMessage} disabled={isLoading || isListening} className="px-4 py-2 font-semibold text-primary-text bg-primary rounded-lg hover:bg-primary-dark disabled:bg-gray-400">
+                            Send
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </>
     );
 };
 

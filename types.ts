@@ -1,11 +1,9 @@
-// FIX: Add React import for types
 import type * as React from 'react';
 
 export interface NavItem {
   id: string;
   name: string;
   href: string;
-  // FIX: Use React.ReactElement instead of JSX.Element to avoid namespace issues.
   icon: (props: React.SVGProps<SVGSVGElement>) => React.ReactElement;
   adminOnly?: boolean;
   pharmacyOnly?: boolean;
@@ -17,7 +15,6 @@ export interface KpiData {
   value: string;
   change: string;
   changeType: 'increase' | 'decrease';
-  // FIX: Use React.ReactElement instead of JSX.Element to avoid namespace issues.
   icon: (props: React.SVGProps<SVGSVGElement>) => React.ReactElement;
 }
 
@@ -32,17 +29,40 @@ export interface InventoryItem {
   name: string;
   brand: string;
   category: string;
-  stock: number;
-  minStockLimit: number;
+  stock: number; // Total loose units
+  unitsPerPack: number; // e.g. 10 tablets per strip
+  minStockLimit: number; // In loose units
   batch: string;
-  expiry: string;
-  purchasePrice: number;
-  mrp: number;
+  expiry: string; // exp
+  purchasePrice: number; // represents pur_rate, per pack
+  mrp: number; // per pack
   gstPercent: number;
   hsnCode: string;
-  packSize?: string;
+  packType?: string; // e.g. "10's strip"
+  baseUnit?: string; // e.g. "Tablet"
+  packUnit?: string; // e.g. "Strip"
   composition?: string;
+  barcode?: string;
+
+  // New fields from user request
+  code?: string;
+  deal?: number;
+  free?: number;
+  purchaseDeal?: number;
+  purchaseFree?: number;
+  cost?: number;
+  value?: number;
+  rate?: number;
+  company?: string;
+  manufacturer?: string; // manufact
+  receivedDate?: string; // rec_date
+  mfgDate?: string; // mfd
+  supplierName?: string; // supplier
+  supplierInvoice?: string; // suppinvo
+  supplierInvoiceDate?: string; // suppdate
+  rackNumber?: string; // rackno
 }
+
 
 export interface ChatMessage {
   role: 'user' | 'model';
@@ -59,21 +79,36 @@ export interface PurchaseItem {
   category: string;
   batch: string;
   expiry: string;
-  quantity: number;
-  purchasePrice: number;
-  mrp: number;
+  quantity: number; // Number of packs
+  looseQuantity?: number; // Number of loose units
+  looseFreeQuantity?: number; // Number of free loose units (D.Qty)
+  purchasePrice: number; // per pack
+  mrp: number; // per pack
   gstPercent: number;
   hsnCode: string;
+  discountPercent?: number;
+  packType?: string;
+  oldMrp?: number;
+  composition?: string;
+  matchStatus?: 'matched' | 'unmatched';
 }
 
 export interface Purchase {
-    id: string;
+    id: string; // This is the UUID for the primary key
+    purchaseSerialId: string; // This is the human-readable ID like PUR-12345
     purchaseOrderId?: string;
     supplier: string;
     invoiceNumber: string;
     date: string;
+    createdAt?: string;
     items: PurchaseItem[];
     totalAmount: number;
+    subtotal?: number;
+    totalItemDiscount?: number;
+    totalGst?: number;
+    schemeDiscount?: number;
+    roundOff?: number;
+    status?: 'completed' | 'cancelled';
 }
 
 export interface ExtractedPurchaseBill {
@@ -81,30 +116,41 @@ export interface ExtractedPurchaseBill {
     invoiceNumber: string;
     date: string;
     supplierGstNumber?: string;
-    items: Omit<PurchaseItem, 'id'>[];
+    items: Omit<PurchaseItem, 'id' | 'matchStatus'>[];
+    error?: string;
 }
 
 export interface TransactionSummary {
   id: string; // e.g., INV-20240012
   customerName: string;
   customerPhone?: string;
-  customerId: string;
+  customerId: string | null;
   date: string;
+  createdAt?: string;
   total: number;
   itemCount: number;
+  subtotal?: number;
+  totalItemDiscount?: number;
+  totalGst?: number;
+  schemeDiscount?: number;
+  roundOff?: number;
+  referredBy?: string;
+  status?: 'completed' | 'cancelled';
 }
 
 export interface BillItem {
-    id: string;
+    id: string; // Unique ID for this line item, e.g., crypto.randomUUID()
+    inventoryItemId: string; // The ID of the product in inventory. Can be 'MANUAL'
     name: string;
     brand: string;
     category: string;
-    mrp: number;
-    quantity: number;
+    mrp: number; // Price per unit SOLD (per pack OR per loose)
+    quantity: number; // Number of units SOLD (e.g. 2 strips, or 5 tablets)
+    unit: 'pack' | 'loose'; // The unit for this bill item
     gstPercent: number;
     hsnCode: string;
     discountPercent?: number;
-    packSize?: string;
+    packType?: string;
 }
 
 export interface Transaction extends TransactionSummary {
@@ -122,7 +168,7 @@ export interface SalesReturn {
     date: string;
     originalInvoiceId: string;
     customerName: string;
-    customerId: string;
+    customerId: string | null;
     items: SalesReturnItem[];
     totalRefund: number;
 }
@@ -132,7 +178,7 @@ export interface PurchaseReturnItem {
     name: string;
     brand: string;
     purchasePrice: number;
-    returnQuantity: number;
+    returnQuantity: number; // In packs
     reason: string;
 }
 
@@ -145,6 +191,15 @@ export interface PurchaseReturn {
     totalValue: number;
 }
 
+export interface ModuleConfig {
+    visible: boolean;
+    fields: { [key: string]: boolean };
+}
+
+export interface AppConfigurations {
+    [moduleId: string]: ModuleConfig;
+}
+
 export interface RegisteredPharmacy {
     ownerName: string;
     pharmacyName: string;
@@ -152,6 +207,7 @@ export interface RegisteredPharmacy {
     drugLicense: string;
     panCard?: string;
     gstNumber?: string;
+    address?: string;
     phone: string;
     email: string;
     bankAccountName: string;
@@ -159,6 +215,9 @@ export interface RegisteredPharmacy {
     bankIfsc: string;
     authorizedSignatory: string;
     pharmacyLogoUrl?: string;
+    theme?: string;
+    mode?: 'light' | 'dark';
+    configurations?: AppConfigurations;
 }
 
 export interface DetailedBill extends Transaction {
@@ -186,12 +245,13 @@ export interface Distributor {
     accountNumber?: string;
     ifscCode?: string;
   };
+  isActive?: boolean;
 }
 
 export interface Customer {
     id: string;
     name: string;
-    phone: string;
+    phone: string | null;
     email?: string;
     address?: string;
     ledger: TransactionLedgerItem[];
@@ -223,7 +283,6 @@ export interface PurchaseOrder {
   totalAmount: number;
 }
 
-// FIX: Added missing type definitions for Medicine, Category, SubCategory, Promotion, and related enums.
 export interface Medicine {
   id: string;
   createdAt: string;
@@ -231,7 +290,6 @@ export interface Medicine {
   name: string;
   description: string;
   composition: string;
-  brand: string;
   manufacturer: string;
   marketer: string;
   returnDays: number;
@@ -247,6 +305,7 @@ export interface Medicine {
   isPrescriptionRequired: boolean;
   isActive: boolean;
   imageUrl: string;
+  barcode?: string;
 }
 
 export interface Category {
@@ -303,4 +362,10 @@ export interface Promotion {
     maxDiscountAmount?: number;
     isGstInclusive: boolean;
     channels: string[]; // e.g., ['inStore', 'online']
+}
+
+export interface Notification {
+  id: number;
+  message: string;
+  type: 'success' | 'error';
 }

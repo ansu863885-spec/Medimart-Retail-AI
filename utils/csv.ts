@@ -1,4 +1,3 @@
-
 function formatCsvField(field: any): string {
     const str = String(field ?? '');
     // If the string contains a comma, a quote, or a newline, enclose it in double quotes.
@@ -26,3 +25,26 @@ export const downloadCsv = (csvContent: string, fileName: string) => {
         document.body.removeChild(link);
     }
 };
+
+export function parseCsvLine(line: string): string[] {
+    const fields: string[] = [];
+    // Regex to handle quoted fields with commas and escaped quotes
+    const regex = /("([^"]|"")*"|[^,]*)(,|$)/g;
+    let match;
+    
+    regex.lastIndex = 0;
+
+    do {
+        match = regex.exec(line);
+        if (match) {
+            let value = match[1];
+            // If the field was quoted, remove the outer quotes and unescape inner quotes
+            if (value.startsWith('"') && value.endsWith('"')) {
+                value = value.substring(1, value.length - 1).replace(/""/g, '"');
+            }
+            fields.push(value.trim());
+        }
+    } while (match && match[3] === ',');
+
+    return fields;
+}

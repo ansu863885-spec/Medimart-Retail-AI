@@ -10,7 +10,7 @@ interface AuthPageProps {
 const initialFormData: RegisteredPharmacy = {
     ownerName: '', pharmacyName: '', pharmacistName: '', drugLicense: '',
     panCard: '', gstNumber: '', phone: '', email: '', bankAccountName: '',
-    bankAccountNumber: '', bankIfsc: '', authorizedSignatory: '', pharmacyLogoUrl: ''
+    bankAccountNumber: '', bankIfsc: '', authorizedSignatory: '', pharmacyLogoUrl: '', address: '',
 };
 
 // Centralized validation logic
@@ -106,14 +106,10 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
         }
         setIsResetting(true);
         try {
-            const userExists = await findUserByEmail(resetEmail);
-            if (userExists) {
-                setResetMessage('A password reset link has been sent to your email address.');
-            } else {
-                setResetError('No account found with this email address.');
-            }
-        } catch {
-            setResetError('An error occurred while checking for your account.');
+            await findUserByEmail(resetEmail);
+            setResetMessage('If an account is associated with this email, a password reset link has been sent.');
+        } catch (error: any) {
+            setResetError(error.message || 'An error occurred while checking for your account.');
         } finally {
             setIsResetting(false);
         }
@@ -134,7 +130,11 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             onLogin(userProfile);
         } catch (error: any) {
             console.error("Registration failed:", error);
-            alert(error.message || 'An error occurred during registration.');
+            if (error.message && error.message.toLowerCase().includes('user already registered')) {
+                setRegErrors(prev => ({ ...prev, email: 'This email address is already in use. Please use a different email or log in.' }));
+            } else {
+                alert(`Registration failed:\n${error.message}`);
+            }
         } finally {
             setIsRegistering(false);
         }
@@ -156,8 +156,8 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
 
     const renderInputField = (label: string, name: keyof RegisteredPharmacy, type = 'text', isOptional = false) => (
         <div>
-            <label htmlFor={name} className="block text-sm font-medium text-gray-700">{label} {!isOptional && '*'}</label>
-            <input type={type} id={name} name={name} value={formData[name] || ''} onChange={handleRegChange} required={!isOptional} className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-[#11A66C] focus:border-[#11A66C] sm:text-sm ${regErrors[name] ? 'border-red-500' : 'border-gray-300'}`}/>
+            <label htmlFor={name} className="block text-sm font-medium text-app-text-secondary">{label} {!isOptional && '*'}</label>
+            <input type={type} id={name} name={name} value={(formData[name] as string) || ''} onChange={handleRegChange} required={!isOptional} className={`mt-1 block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-input-bg ${regErrors[name] ? 'border-red-500' : 'border-app-border'}`}/>
             {regErrors[name] && <p className="text-xs text-red-500 mt-1">{regErrors[name]}</p>}
         </div>
     );
@@ -173,22 +173,22 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     const renderLogin = () => (
         <form onSubmit={handleLogin} className="space-y-6">
             <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">Email address</label>
+                <label htmlFor="email" className="block text-sm font-medium text-app-text-secondary">Email address</label>
                 <div className="mt-1">
-                    <input id="email" name="email" type="email" autoComplete="email" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#11A66C] focus:border-[#11A66C] sm:text-sm" />
+                    <input id="email" name="email" type="email" autoComplete="email" required value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} className="appearance-none block w-full px-3 py-2 border border-app-border rounded-md shadow-sm placeholder-app-text-tertiary focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-input-bg" />
                 </div>
             </div>
 
             <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700">Password</label>
+                <label htmlFor="password" className="block text-sm font-medium text-app-text-secondary">Password</label>
                 <div className="mt-1">
-                    <input id="password" name="password" type="password" autoComplete="current-password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-[#11A66C] focus:border-[#11A66C] sm:text-sm" />
+                    <input id="password" name="password" type="password" autoComplete="current-password" required value={loginPassword} onChange={(e) => setLoginPassword(e.target.value)} className="appearance-none block w-full px-3 py-2 border border-app-border rounded-md shadow-sm placeholder-app-text-tertiary focus:outline-none focus:ring-primary focus:border-primary sm:text-sm bg-input-bg" />
                 </div>
             </div>
 
             <div className="flex items-center justify-between">
                 <div className="text-sm">
-                    <button type="button" onClick={() => handleViewChange('forgotPassword')} className="font-medium text-[#11A66C] hover:text-[#0f5132]">
+                    <button type="button" onClick={() => handleViewChange('forgotPassword')} className="font-medium text-primary hover:text-primary-dark">
                         Forgot your password?
                     </button>
                 </div>
@@ -197,7 +197,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
             {loginError && <p className="text-sm text-red-600 text-center">{loginError}</p>}
 
             <div>
-                <button type="submit" disabled={isLoggingIn} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-[#11A66C] hover:bg-[#0f5132] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#11A66C] disabled:bg-gray-400">
+                <button type="submit" disabled={isLoggingIn} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-primary-text bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary disabled:bg-gray-400">
                     {isLoggingIn ? 'Signing in...' : 'Sign in'}
                 </button>
             </div>
@@ -216,28 +216,29 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
              {step === 2 && (
                 <div className="space-y-4 animate-fade-in">
                     {renderInputField("Drug License Number", "drugLicense")}
+                    {renderInputField("Pharmacy Address", "address", "text", true)}
                     {renderInputField("Phone Number", "phone", "tel")}
                     {renderInputField("Email ID", "email", "email")}
                     {renderInputField("Authorized Signatory", "authorizedSignatory")}
                     {renderInputField("GST Number", "gstNumber", "text", true)}
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Password *</label>
-                        <input type="password" name="regPassword" value={regPassword} onChange={e => setRegPassword(e.target.value)} className={`mt-1 block w-full p-2 border rounded-md shadow-sm ${regErrors.regPassword ? 'border-red-500' : 'border-gray-300'}`} />
+                        <label className="block text-sm font-medium text-app-text-secondary">Password *</label>
+                        <input type="password" name="regPassword" value={regPassword} onChange={e => setRegPassword(e.target.value)} className={`mt-1 block w-full p-2 border rounded-md shadow-sm bg-input-bg ${regErrors.regPassword ? 'border-red-500' : 'border-app-border'}`} />
                         {regErrors.regPassword && <p className="text-xs text-red-500 mt-1">{regErrors.regPassword}</p>}
                     </div>
                      <div>
-                        <label className="block text-sm font-medium text-gray-700">Confirm Password *</label>
-                        <input type="password" name="regConfirmPassword" value={regConfirmPassword} onChange={e => setRegConfirmPassword(e.target.value)} className={`mt-1 block w-full p-2 border rounded-md shadow-sm ${regErrors.regConfirmPassword ? 'border-red-500' : 'border-gray-300'}`} />
+                        <label className="block text-sm font-medium text-app-text-secondary">Confirm Password *</label>
+                        <input type="password" name="regConfirmPassword" value={regConfirmPassword} onChange={e => setRegConfirmPassword(e.target.value)} className={`mt-1 block w-full p-2 border rounded-md shadow-sm bg-input-bg ${regErrors.regConfirmPassword ? 'border-red-500' : 'border-app-border'}`} />
                         {regErrors.regConfirmPassword && <p className="text-xs text-red-500 mt-1">{regErrors.regConfirmPassword}</p>}
                     </div>
                 </div>
             )}
 
             <div className="flex justify-between items-center pt-4">
-                {step > 1 && <button type="button" onClick={prevStep} className="px-4 py-2 text-sm font-semibold bg-white border rounded-lg">Back</button>}
+                {step > 1 && <button type="button" onClick={prevStep} className="px-4 py-2 text-sm font-semibold bg-card-bg border rounded-lg border-app-border hover:bg-hover">Back</button>}
                 <div className="flex-grow"></div>
-                {step < 2 && <button type="button" onClick={nextStep} className="px-4 py-2 text-sm font-semibold text-white bg-[#11A66C] rounded-lg">Next</button>}
-                {step === 2 && <button type="submit" disabled={isRegistering} className="px-4 py-2 text-sm font-semibold text-white bg-[#11A66C] rounded-lg disabled:bg-gray-400">{isRegistering ? 'Registering...' : 'Register & Login'}</button>}
+                {step < 2 && <button type="button" onClick={nextStep} className="px-4 py-2 text-sm font-semibold text-primary-text bg-primary rounded-lg">Next</button>}
+                {step === 2 && <button type="submit" disabled={isRegistering} className="px-4 py-2 text-sm font-semibold text-primary-text bg-primary rounded-lg disabled:bg-gray-400">{isRegistering ? 'Registering...' : 'Register & Login'}</button>}
             </div>
         </form>
     );
@@ -245,15 +246,15 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     const renderForgotPassword = () => (
          <form onSubmit={handleForgotPassword} className="space-y-6">
             <div>
-                <label htmlFor="reset-email" className="block text-sm font-medium text-gray-700">Email address</label>
+                <label htmlFor="reset-email" className="block text-sm font-medium text-app-text-secondary">Email address</label>
                 <div className="mt-1">
-                    <input id="reset-email" name="email" type="email" autoComplete="email" required value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm" />
+                    <input id="reset-email" name="email" type="email" autoComplete="email" required value={resetEmail} onChange={e => setResetEmail(e.target.value)} className="w-full px-3 py-2 border border-app-border rounded-md shadow-sm bg-input-bg" />
                 </div>
             </div>
             {resetError && <p className="text-sm text-red-600 text-center">{resetError}</p>}
             {resetMessage && <p className="text-sm text-green-600 text-center">{resetMessage}</p>}
             <div>
-                <button type="submit" disabled={isResetting} className="w-full py-2 px-4 border rounded-md shadow-sm text-sm font-medium text-white bg-[#11A66C] hover:bg-[#0f5132] disabled:bg-gray-400">
+                <button type="submit" disabled={isResetting} className="w-full py-2 px-4 border rounded-md shadow-sm text-sm font-medium text-primary-text bg-primary hover:bg-primary-dark disabled:bg-gray-400">
                     {isResetting ? 'Sending...' : 'Send Reset Link'}
                 </button>
             </div>
@@ -261,16 +262,16 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
     );
 
     return (
-        <div className="min-h-screen bg-[#F7FAF8] flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+        <div className="min-h-screen bg-app-bg flex flex-col justify-center py-12 sm:px-6 lg:px-8">
             <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
                  <img src={logoDataUrl} alt="Medimart Logo" className="mx-auto h-24 w-auto" />
-                <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+                <h2 className="mt-6 text-center text-3xl font-extrabold text-app-text-primary">
                     {getTitle()}
                 </h2>
                 {view === 'login' && (
-                    <p className="mt-2 text-center text-sm text-gray-600">
+                    <p className="mt-2 text-center text-sm text-app-text-secondary">
                         Or{' '}
-                        <button onClick={() => handleViewChange('register')} className="font-medium text-[#11A66C] hover:text-[#0f5132]">
+                        <button onClick={() => handleViewChange('register')} className="font-medium text-primary hover:text-primary-dark">
                             create a new pharmacy account
                         </button>
                     </p>
@@ -285,7 +286,7 @@ const AuthPage: React.FC<AuthPageProps> = ({ onLogin }) => {
                     
                     {(view === 'register' || view === 'forgotPassword') && (
                         <div className="mt-6 text-center text-sm">
-                            <button onClick={() => handleViewChange('login')} className="font-medium text-[#11A66C] hover:text-[#0f5132]">
+                            <button onClick={() => handleViewChange('login')} className="font-medium text-primary hover:text-primary-dark">
                                 &larr; Back to Sign in
                             </button>
                         </div>
