@@ -3,60 +3,54 @@ name: Supabase DB Backup
 on:
   workflow_dispatch:
   schedule:
-    # Runs daily at 18:00 UTC (which is 23:30 IST, Asia/Kolkata)
-    - cron: "0 18 * * *"
-
-permissions:
-  contents: write
+    - cron: "0 18 * * *" # daily @ 18:00 UTC (23:30 IST)
 
 jobs:
   backup:
     runs-on: ubuntu-latest
+    env:
+      PGHOST: db.sblmbkgoiefqzykjksgm.supabase.co
+      PGPORT: "5432"
+      PGUSER: postgres
+      PGDATABASE: postgres
+      PGSSLMODE: require
+      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Install PostgreSQL client (pg_dump, psql)
+      - name: Install PostgreSQL client
         run: |
           sudo apt-get update -y
           sudo apt-get install -y postgresql-client
 
       - name: Prepare backup folder
-        run: |
-          mkdir -p backups
+        run: mkdir -p backups
 
-      - name: Run pg_dump (compressed custom format)
-        env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      - name: Run pg_dump (compressed)
         run: |
           TS=$(date -u +"%Y%m%dT%H%M%SZ")
-          FILE="backups/supabase_${TS}.dump"
-          # --format=custom gives a .dump you can restore with pg_restore
-          # -Z9 is max compression
-          pg_dump --no-owner --no-privileges --format=custom -Z9 \
-            --dbname="$SUPABASE_DB_URL" \
-            --file="$FILE"
+          pg_dump -Fc -Z9 -f "backups/supabase_${TS}.dump"
 
-      - name: (Optional) dump schema-only snapshot for quick diffs
+      - name: Dump schema-only (optional)
         if: ${{ always() }}
-        env:
-          SUPABASE_DB_URL: ${{ postgresql://postgres:[YOUR_PASSWORD]@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
         run: |
           TS=$(date -u +"%Y%m%dT%H%M%SZ")
-          FILE="backups/schema_${TS}.sql"
-          pg_dump --no-owner --no-privileges --schema-only \
-            --dbname="$SUPABASE_DB_URL" \
-            > "$FILE"
+          pg_dump --schema-only > "backups/schema_${TS}.sql"
 
       - name: Keep only latest 14 backups
         run: |
           ls -1t backups/supabase_*.dump 2>/dev/null | tail -n +15 | xargs -r rm -f
-          ls -1t backups/schema_*.sql 2>/dev/null   | tail -n +15 | xargs -r rm -f
+          ls -1t backups/schema_*.sql  2>/dev/null | tail -n +15 | xargs -r rm -f
 
       - name: Commit & push
+        env:
+          GIT_AUTHOR_NAME: github-actions[bot]
+          GIT_AUTHOR_EMAIL: github-actions[bot]@users.noreply.github.com
+          GIT_COMMITTER_NAME: github-actions[bot]
+          GIT_COMMITTER_EMAIL: github-actions[bot]@users.noreply.github.com
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
           git add backups/
           if git diff --cached --quiet; then
             echo "No changes to commit."
