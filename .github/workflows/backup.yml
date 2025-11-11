@@ -27,7 +27,7 @@ jobs:
 
       - name: Run pg_dump (compressed custom format)
         env:
-          SUPABASE_DB_URL: ${{ postgresql://postgres:[YOUR_PASSWORD]@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
+          SUPABASE_DB_URL: ${{ postgresql://postgres:Mridu#123@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
         run: |
           TS=$(date -u +"%Y%m%dT%H%M%SZ")
           FILE="backups/supabase_${TS}.dump"
