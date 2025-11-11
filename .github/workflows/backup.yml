@@ -40,7 +40,7 @@ jobs:
       - name: (Optional) dump schema-only snapshot for quick diffs
         if: ${{ always() }}
         env:
-          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_DB_URL: ${{ postgresql://postgres:[YOUR_PASSWORD]@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
         run: |
           TS=$(date -u +"%Y%m%dT%H%M%SZ")
           FILE="backups/schema_${TS}.sql"
