@@ -14,7 +14,7 @@ jobs:
       PGUSER: postgres
       PGDATABASE: postgres
       PGSSLMODE: require
-      PGPASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+      PGPASSWORD: ${{ secrets.Mridu#123 }}
 
     steps:
       - name: Checkout repo
