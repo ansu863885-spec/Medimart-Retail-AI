@@ -1,10 +1,37 @@
-name: Smoke
+name: Supabase DB Backup to GitHub
 
 on:
-  workflow_dispatch:
+  schedule:
+    # Runs daily at 02:00 UTC; change cron as needed
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
 
 jobs:
-  test:
+  backup:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "Actions are working ✅"
+      - name: Checkout (persist credentials so the job can push)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up environment
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client openssl git
+
+      - name: Make scripts executable
+        run: |
+          chmod +x scripts/backup.sh
+
+      - name: Run backup script
+        env:
+          SUPABASE_DB_URL: ${{ postgresql://postgres:Mridu#123@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
+          ENCRYPTION_PASSPHRASE: ${{ secrets.ENCRYPTION_PASSPHRASE }}
+          BACKUP_BRANCH: ${{ secrets.BACKUP_BRANCH || 'backups' }}
+          BACKUP_KEEP_DAYS: ${{ secrets.BACKUP_KEEP_DAYS || '30' }}
+          GIT_COMMITTER_NAME: ${{ secrets.GIT_COMMITTER_NAME || 'supabase-backup-bot' }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GIT_COMMITTER_EMAIL || 'backup-bot@example.com' }}
+        run: |
+          ./scripts/backup.sh
