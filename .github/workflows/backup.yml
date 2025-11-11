@@ -1,37 +1,66 @@
-name: Supabase DB Backup to GitHub
+name: Supabase DB Backup
 
 on:
+  workflow_dispatch:
   schedule:
-    # Runs daily at 02:00 UTC; change cron as needed
-    - cron: '0 2 * * *'
-  workflow_dispatch: {}
+    # Runs daily at 18:00 UTC (which is 23:30 IST, Asia/Kolkata)
+    - cron: "0 18 * * *"
+
+permissions:
+  contents: write
 
 jobs:
   backup:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout (persist credentials so the job can push)
+      - name: Checkout repo
         uses: actions/checkout@v4
-        with:
-          persist-credentials: true
-          fetch-depth: 0
 
-      - name: Set up environment
+      - name: Install PostgreSQL client (pg_dump, psql)
         run: |
           sudo apt-get update -y
-          sudo apt-get install -y postgresql-client openssl git
+          sudo apt-get install -y postgresql-client
 
-      - name: Make scripts executable
+      - name: Prepare backup folder
         run: |
-          chmod +x scripts/backup.sh
+          mkdir -p backups
 
-      - name: Run backup script
+      - name: Run pg_dump (compressed custom format)
         env:
-          SUPABASE_DB_URL: ${{ postgresql://postgres:Mridu#123@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
-          ENCRYPTION_PASSPHRASE: ${{ secrets.ENCRYPTION_PASSPHRASE }}
-          BACKUP_BRANCH: ${{ secrets.BACKUP_BRANCH || 'backups' }}
-          BACKUP_KEEP_DAYS: ${{ secrets.BACKUP_KEEP_DAYS || '30' }}
-          GIT_COMMITTER_NAME: ${{ secrets.GIT_COMMITTER_NAME || 'supabase-backup-bot' }}
-          GIT_COMMITTER_EMAIL: ${{ secrets.GIT_COMMITTER_EMAIL || 'backup-bot@example.com' }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          ./scripts/backup.sh
+          TS=$(date -u +"%Y%m%dT%H%M%SZ")
+          FILE="backups/supabase_${TS}.dump"
+          # --format=custom gives a .dump you can restore with pg_restore
+          # -Z9 is max compression
+          pg_dump --no-owner --no-privileges --format=custom -Z9 \
+            --dbname="$SUPABASE_DB_URL" \
+            --file="$FILE"
+
+      - name: (Optional) dump schema-only snapshot for quick diffs
+        if: ${{ always() }}
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          TS=$(date -u +"%Y%m%dT%H%M%SZ")
+          FILE="backups/schema_${TS}.sql"
+          pg_dump --no-owner --no-privileges --schema-only \
+            --dbname="$SUPABASE_DB_URL" \
+            > "$FILE"
+
+      - name: Keep only latest 14 backups
+        run: |
+          ls -1t backups/supabase_*.dump 2>/dev/null | tail -n +15 | xargs -r rm -f
+          ls -1t backups/schema_*.sql 2>/dev/null   | tail -n +15 | xargs -r rm -f
+
+      - name: Commit & push
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Automated backup: $(date -u +'%Y-%m-%d %H:%M:%SZ')"
+            git push
+          fi
