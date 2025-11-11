@@ -1,0 +1,38 @@
+on:
+  schedule:
+    # Runs daily at 02:00 UTC; change cron as needed
+    - cron: '0 2 * * *'
+  workflow_dispatch: {}
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (persist credentials so the job can push)
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: true
+          fetch-depth: 0
+
+      - name: Set up environment
+        run: |
+          sudo apt-get update -y
+          sudo apt-get install -y postgresql-client openssl git gzip
+
+      - name: Make scripts executable
+        run: |
+          chmod +x scripts/backup.sh
+
+      - name: Run backup script
+        env:
+          # REQUIRED: set this secret in repository settings (do NOT hardcode)
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          # REQUIRED: set an encryption passphrase in secrets
+          ENCRYPTION_PASSPHRASE: ${{ secrets.ENCRYPTION_PASSPHRASE }}
+          # Optional secrets (if not set, script will use defaults)
+          BACKUP_BRANCH: ${{ secrets.BACKUP_BRANCH }}
+          BACKUP_KEEP_DAYS: ${{ secrets.BACKUP_KEEP_DAYS }}
+          GIT_COMMITTER_NAME: ${{ secrets.GIT_COMMITTER_NAME }}
+          GIT_COMMITTER_EMAIL: ${{ secrets.GIT_COMMITTER_EMAIL }}
+        run: |
+          ./scripts/backup.sh
