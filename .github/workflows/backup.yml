@@ -3,7 +3,7 @@ name: Supabase DB Backup
 on:
   workflow_dispatch:
   schedule:
-    # Runs daily at 18:00 UTC (which is 23:30 IST, Asia/Kolkata)
+    # Runs daily at 18:00 UTC (23:30 IST, Asia/Kolkata)
     - cron: "0 18 * * *"
 
 permissions:
@@ -22,36 +22,33 @@ jobs:
           sudo apt-get install -y postgresql-client
 
       - name: Prepare backup folder
-        run: |
-          mkdir -p backups
+        run: mkdir -p backups
 
       - name: Run pg_dump (compressed custom format)
         env:
-          SUPABASE_DB_URL: ${{ postgresql://postgres:Mridu#123@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           TS=$(date -u +"%Y%m%dT%H%M%SZ")
           FILE="backups/supabase_${TS}.dump"
-          # --format=custom gives a .dump you can restore with pg_restore
-          # -Z9 is max compression
+          # --format=custom -> .dump (use pg_restore to restore); -Z9 max compression
           pg_dump --no-owner --no-privileges --format=custom -Z9 \
             --dbname="$SUPABASE_DB_URL" \
             --file="$FILE"
 
-      - name: (Optional) dump schema-only snapshot for quick diffs
+      - name: Dump schema-only snapshot (optional)
         if: ${{ always() }}
         env:
-          SUPABASE_DB_URL: ${{ postgresql://postgres:Mridu#123@db.sblmbkgoiefqzykjksgm.supabase.co:5432/postgres }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
           TS=$(date -u +"%Y%m%dT%H%M%SZ")
           FILE="backups/schema_${TS}.sql"
           pg_dump --no-owner --no-privileges --schema-only \
-            --dbname="$SUPABASE_DB_URL" \
-            > "$FILE"
+            --dbname="$SUPABASE_DB_URL" > "$FILE"
 
       - name: Keep only latest 14 backups
         run: |
           ls -1t backups/supabase_*.dump 2>/dev/null | tail -n +15 | xargs -r rm -f
-          ls -1t backups/schema_*.sql 2>/dev/null   | tail -n +15 | xargs -r rm -f
+          ls -1t backups/schema_*.sql  2>/dev/null | tail -n +15 | xargs -r rm -f
 
       - name: Commit & push
         run: |
